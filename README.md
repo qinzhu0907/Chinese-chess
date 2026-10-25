@@ -1,5 +1,9 @@
 # 中国象棋 · 联机对战 & AI 对局
 
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](./Dockerfile)
+
 一个零依赖前端框架、可直接部署到自有服务器的中国象棋网站。两个核心功能：
 
 - **联机对战** —— 房间号约战 / 快速匹配，实时同步，支持悔棋、求和、认输、换先再战
@@ -59,8 +63,10 @@ xiangqi/
 ## 快速开始（本地）
 
 ```bash
-# 要求 Node.js >= 18
-npm install
+git clone https://github.com/qinzhu0907/Chinese-chess.git
+cd Chinese-chess
+
+npm install     # 生产部署用 npm ci --omit=dev
 npm start
 # 打开 http://localhost:3000
 ```
@@ -147,7 +153,7 @@ sudo apt install -y nodejs
 
 # 2. 上传代码到 /opt/xiangqi（或用 git clone）
 sudo mkdir -p /opt/xiangqi && cd /opt/xiangqi
-sudo git clone https://github.com/<你的用户名>/xiangqi-online.git .
+sudo git clone https://github.com/qinzhu0907/Chinese-chess.git .
 sudo npm ci --omit=dev
 
 # 3. 用 PM2 守护进程

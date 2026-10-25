@@ -1,0 +1,17 @@
+services:
+  xiangqi:
+    build: .
+    # 也可以直接用镜像：image: ghcr.io/<你的用户名>/xiangqi-online:latest
+    container_name: xiangqi
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "3000:3000"   # 若前面已有 Nginx，可改成 "127.0.0.1:3000:3000" 只暴露本机
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

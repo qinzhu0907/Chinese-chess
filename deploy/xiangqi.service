@@ -1,0 +1,21 @@
+# /etc/systemd/system/xiangqi.service
+# sudo systemctl daemon-reload && sudo systemctl enable --now xiangqi
+[Unit]
+Description=Xiangqi Online (Chinese Chess) Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/xiangqi
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=0.0.0.0
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+StandardOutput=append:/var/log/xiangqi/out.log
+StandardError=append:/var/log/xiangqi/error.log
+
+[Install]
+WantedBy=multi-user.target

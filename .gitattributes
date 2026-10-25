@@ -1,0 +1,2 @@
+# 统一换行符，避免部署到 Linux 服务器时出现 CRLF 问题
+* text=auto eol=lf

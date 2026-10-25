@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>中国象棋 · 联机对战 & AI 对局</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">帥</span>
+      <div class="brand-text">
+        <h1>中国象棋</h1>
+        <p>联机对战 · 人机对战</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="roomBadge" class="badge hidden"></span>
+      <button id="btnHome" class="btn ghost hidden">返回大厅</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="board-col">
+      <div class="board-wrap">
+        <canvas id="board"></canvas>
+        <div id="banner" class="banner hidden">
+          <div class="banner-inner">
+            <div id="bannerTitle">对局结束</div>
+            <div id="bannerSub"></div>
+            <button id="bannerBtn" class="btn primary">再来一局</button>
+          </div>
+        </div>
+      </div>
+      <div class="board-foot">
+        <div class="turn-chip" id="turnChip">准备开始</div>
+        <div class="clocks">
+          <div class="clock"><span class="dot red"></span><span id="clockRed">00:00</span></div>
+          <div class="clock"><span class="dot black"></span><span id="clockBlack">00:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side-col">
+
+      <!-- 大厅 -->
+      <div class="screen" id="screen-home">
+        <h2>开始对局</h2>
+        <label class="field">
+          <span>昵称</span>
+          <input id="nick" type="text" placeholder="请输入昵称" maxlength="12" value="棋友">
+        </label>
+        <button class="big-btn" id="goAi">
+          <strong>人机对战</strong>
+          <em>内置引擎，三档难度，随时开局</em>
+        </button>
+        <button class="big-btn" id="goOnline">
+          <strong>联机对战</strong>
+          <em>创建房间 / 房间号约战 / 快速匹配</em>
+        </button>
+        <p class="tip">规则：红先黑后；将死或困毙对方为胜；60 回合无吃子判和。</p>
+      </div>
+
+      <!-- 人机设置 -->
+      <div class="screen hidden" id="screen-ai">
+        <h2>人机对战</h2>
+        <div class="field">
+          <span>难度</span>
+          <div class="seg" id="levelSeg">
+            <button data-level="1">初级</button>
+            <button data-level="2" class="on">中级</button>
+            <button data-level="3">高级</button>
+          </div>
+        </div>
+        <p class="hint" id="levelHint">中级：搜索约 5 层，思路稳健。</p>
+        <div class="field">
+          <span>我执</span>
+          <div class="seg" id="aiSideSeg">
+            <button data-side="0" class="on">红方（先手）</button>
+            <button data-side="1">黑方（后手）</button>
+          </div>
+        </div>
+        <button class="btn primary block" id="startAi">开始对局</button>
+        <button class="btn ghost block" id="backHome1">返回</button>
+      </div>
+
+      <!-- 联机 -->
+      <div class="screen hidden" id="screen-online">
+        <h2>联机对战</h2>
+        <button class="btn primary block" id="btnCreate">创建房间</button>
+        <button class="btn block" id="btnQuick">快速匹配</button>
+        <div class="field inline">
+          <input id="joinCode" type="text" placeholder="输入房间号" maxlength="6" autocomplete="off">
+          <button class="btn" id="btnJoin">加入</button>
+        </div>
+        <div id="onlineMsg" class="msg"></div>
+        <div id="roomBox" class="room-box hidden">
+          <div class="code-label">房间号</div>
+          <div class="code" id="roomCode">-----</div>
+          <button class="btn ghost small" id="btnCopy">复制房间号</button>
+          <p class="tip">把房间号发给好友，对方在上方输入即可加入对战。</p>
+        </div>
+        <button class="btn ghost block" id="backHome2">返回</button>
+      </div>
+
+      <!-- 对局面板 -->
+      <div class="screen hidden" id="screen-game">
+        <div class="players">
+          <div class="player" id="pRed">
+            <span class="dot red"></span>
+            <div><b id="nameRed">红方</b><i id="tagRed"></i></div>
+          </div>
+          <div class="player" id="pBlack">
+            <span class="dot black"></span>
+            <div><b id="nameBlack">黑方</b><i id="tagBlack"></i></div>
+          </div>
+        </div>
+        <div id="gameMsg" class="msg"></div>
+        <div class="moves-head">
+          <span>棋谱</span>
+          <span id="moveCount" class="muted">0 回合</span>
+        </div>
+        <div class="moves" id="moveList"></div>
+        <div class="actions">
+          <button class="btn" id="btnUndo">悔棋</button>
+          <button class="btn" id="btnHint">提示</button>
+          <button class="btn" id="btnDraw">求和</button>
+          <button class="btn danger" id="btnResign">认输</button>
+        </div>
+        <button class="btn primary block" id="btnAgain">再来一局</button>
+      </div>
+
+    </aside>
+  </main>
+</div>
+
+<script src="/shared/rules.js"></script>
+<script src="/shared/ai.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

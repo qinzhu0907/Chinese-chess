@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: 规则引擎 + AI + 联机自检
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 规则引擎与 AI 自检（含 perft 基准）
+        run: npm test
+
+      - name: 联机流程端到端测试
+        run: |
+          PORT=3000 npm start &
+          npx wait-on http://127.0.0.1:3000/healthz --timeout 30s
+          npm run test:e2e
+        env:
+          PORT: 3000
+
+  docker:
+    name: Docker 镜像构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 构建镜像
+        run: docker build -t xiangqi-online:ci .
+      - name: 冒烟验证容器可启动
+        run: |
+          docker run -d --name xq -p 3000:3000 xiangqi-online:ci
+          for i in $(seq 1 20); do
+            if curl -sf http://127.0.0.1:3000/healthz; then exit 0; fi
+            sleep 1
+          done
+          echo "容器健康检查失败" && docker logs xq && exit 1

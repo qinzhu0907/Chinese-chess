@@ -1,0 +1,22 @@
+# fly.toml app configuration file generated for chinese-chess on 2026-11-16T02:40:53Z
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = 'chinese-chess'
+primary_region = 'ord'
+
+[build]
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256

@@ -29,3 +29,4 @@ coverage/
 
 # 部署产物
 *.tgz
+deploy/nginx.active.conf

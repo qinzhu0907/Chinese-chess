@@ -56,8 +56,10 @@ xiangqi/
 │       └── sound.js          # WebAudio 合成音效（无音频文件）
 ├── deploy/
 │   ├── install.sh            # 一键部署脚本（PM2/systemd + Nginx + 证书）
+│   ├── docker-deploy.sh      # Docker 一键部署（up / ssl / renew / status / logs / down）
 │   ├── nginx.conf            # 宿主机 Nginx 反代模板（含 WebSocket 升级与 gzip）
-│   ├── nginx.docker.conf     # 容器内 Nginx 反代模板
+│   ├── nginx.docker.conf     # 容器内 Nginx 模板（HTTP 版，首次部署自动复制为 active）
+│   ├── nginx.ssl.conf.tpl    # 容器内 Nginx 模板（HTTPS 版，脚本替换域名后启用）
 │   ├── docker-compose.stack.yml  # 应用 + Nginx（+ certbot）完整栈
 │   └── xiangqi.service       # systemd 单元
 ├── selftest.js               # 规则 / 开局库 / 裁判 / AI 自检（含 perft 基准）
@@ -144,14 +146,26 @@ sudo systemctl daemon-reload && sudo systemctl enable --now xiangqi
 docker compose up -d --build
 docker compose logs -f
 
-# D. Docker 全家桶（应用 + Nginx 一起，80/443 直接对外）
-docker compose -f deploy/docker-compose.stack.yml up -d --build
-# 申请证书（域名已解析、80 端口可达）：
-docker compose -f deploy/docker-compose.stack.yml run --rm certbot certonly \
-  --webroot -w /var/www/certbot -d 你的域名 --email 你的邮箱 --agree-tos --no-eff-email
+# D. Docker 全家桶（应用 + Nginx，80/443 直接对外）—— 推荐用脚本，一步到位
+bash deploy/docker-deploy.sh up                       # 起服务，先 http://服务器IP 访问
+bash deploy/docker-deploy.sh ssl 你的域名 你的邮箱      # 自动签证书 + 切 443 + 校验
+bash deploy/docker-deploy.sh status                   # 查看容器与健康状态
+bash deploy/docker-deploy.sh logs                     # 跟踪应用日志
+bash deploy/docker-deploy.sh renew                    # 续期证书（建议加进 crontab）
 ```
 
-Docker 方案 D 会用 `deploy/nginx.docker.conf` 做反代（已含 WebSocket 升级头与 gzip）。拿到证书后把该文件里 443 段取消注释、80 段改成 301 跳转，再 `docker compose -f deploy/docker-compose.stack.yml exec nginx nginx -s reload`。
+`docker-deploy.sh` 的 `ssl` 子命令会：申请 Let's Encrypt 证书 → 用 `deploy/nginx.ssl.conf.tpl` 生成域名版配置覆盖 `deploy/nginx.active.conf`（含 HSTS、443、301 跳转、WebSocket 升级头）→ `nginx -t` 校验 → reload → 用 `https://域名/healthz` 自证生效。配置文件在宿主机上，随时可以手改再 reload。
+
+不想用脚本也可以手动：
+
+```bash
+cp deploy/nginx.docker.conf deploy/nginx.active.conf    # 首次
+docker compose -f deploy/docker-compose.stack.yml up -d --build
+docker compose -f deploy/docker-compose.stack.yml --profile cert run --rm certbot certonly \
+  --webroot -w /var/www/certbot -d 你的域名 --email 你的邮箱 --agree-tos --no-eff-email
+sed 's/__DOMAIN__/你的域名/g' deploy/nginx.ssl.conf.tpl > deploy/nginx.active.conf
+docker compose -f deploy/docker-compose.stack.yml exec nginx nginx -s reload
+```
 
 Nginx 反代 + 证书：
 

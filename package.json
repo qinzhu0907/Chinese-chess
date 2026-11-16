@@ -1,8 +1,8 @@
 {
   "name": "xiangqi-online",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "中国象棋网站：联机对战（房间号/快速匹配）+ AI 对局（内置 Alpha-Beta 引擎）",
+  "description": "中国象棋网站：联机对战（房间号/快速匹配/观战/聊天）+ AI 对局（内置 Alpha-Beta 引擎）",
   "main": "server.js",
   "license": "MIT",
   "engines": {
@@ -12,14 +12,16 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node selftest.js",
+    "test:ui": "node smokeui.js",
     "test:e2e": "node e2etest.js",
-    "test:all": "node selftest.js && node e2etest.js"
+    "test:all": "node selftest.js && node smokeui.js && node e2etest.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "socket.io-client": "^4.7.5"
+    "jsdom": "^31.0.1",
+    "socket.io-client": "^4.8.4"
   }
 }

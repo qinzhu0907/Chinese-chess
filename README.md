@@ -1,37 +1,39 @@
 # 中国象棋 · 联机对战 & AI 对局
 
+[![CI](https://github.com/qinzhu0907/Chinese-chess/actions/workflows/ci.yml/badge.svg)](https://github.com/qinzhu0907/Chinese-chess/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](./Dockerfile)
 
-一个零依赖前端框架、可直接部署到自有服务器的中国象棋网站。两个核心功能：
+一个零构建、可直接部署到自己服务器的中国象棋网站。后端 Node.js + Express + Socket.IO，前端原生 Canvas（没有 npm run build 这一步）。
 
-- **联机对战** —— 房间号约战 / 快速匹配，实时同步，支持悔棋、求和、认输、换先再战
-- **人机对战** —— 内置 Alpha-Beta 搜索引擎（Web Worker 中运行，不卡界面），三档难度 + 走法提示
-
-后端 Node.js + Express + Socket.IO，前端原生 Canvas，无任何前端构建步骤（不需要 npm run build）。
+- **联机对战** —— 房间号约战 / 快速匹配 / 房间大厅，支持观战、聊天、悔棋、求和、换先再战
+- **断线重连** —— 网络抖动或误刷新后，凭 token 在 2 分钟内坐回原座位，对局不中断
+- **人机对战** —— 自研 Alpha-Beta 引擎 + 开局库，跑在 Web Worker 里，三档难度 + 走法提示
 
 ---
 
-## 特性一览
+## 特性
 
-**对弈**
-- 完整中国象棋规则：蹩马腿、塞象眼、炮隔子吃、兵卒过河横走、九宫限制、白脸将
-- 将死 / 困毙判负，60 回合无吃子自动判和
-- 中文记谱（炮二平五、马八进七、前车进一…），实时棋谱列表
-- 走子高亮、上一步痕迹、将军红圈提示、双方计时
-- 移动端适配，触屏点选走子
+**对弈与规则**
+- 完整规则：蹩马腿、塞象眼、炮隔子吃、兵卒过河横走、九宫限制、白脸将
+- 终局判定：将死 / 困毙 / 认输 / 超时判负 / 三次重复局面判和 / 长将判负 / 60 回合无吃子判和
+- 中文记谱（炮二平五、马八进七、前车进一…），实时棋谱，走子动画与音效
+- 将军红圈提示、上一步痕迹、可落点提示、棋盘翻转、移动端触屏适配
 
 **联机**
-- 5 位房间号，复制即分享
-- 快速匹配：自动撮合等待中的玩家
-- **服务端权威校验**：所有走法在服务端用同一套规则引擎复核，杜绝客户端作弊与状态不同步
-- 悔棋（需对手同意）、求和、认输、再来一局（自动换先）、对手掉线提示
+- 5 位房间号 + 一键复制邀请链接（`/?room=ABCDE`，好友打开直接进房）
+- 快速匹配、等待中房间列表、在线人数看板
+- **服务端权威**：走法合法性、胜负、计时全在服务端判定，客户端只做展示，杜绝作弊与状态漂移
+- 第三步起自动进入**观战**，观战者能看到实时棋局与聊天
+- 房间内**聊天**（700ms 发言冷却、消息长度限制）
+- **每步限时**可选 30s / 60s / 2 分钟 / 不限，超时判负（掉线期间自动暂停计时）
+- 悔棋、求和、认输都需要对方同意或直接生效，再来一局需双方同意后**自动换先**
 
 **AI**
-- Negamax + Alpha-Beta 剪枝 + Zobrist 置换表 + 静态搜索 + 将军延伸 + 迭代加深
-- 三档难度（初级 / 中级 / 高级），可执红先手或执黑后手
-- 运行在 Web Worker 中，主线程零阻塞
+- Negamax + Alpha-Beta + Zobrist 置换表 + 静态搜索 + 将军延伸 + 迭代加深
+- 开局库（中炮 / 仙人指路 / 飞相局 / 起马局等 21 个局面），开局不呆板
+- 初级会走随手棋、高级搜索 10 层；提示功能用更强配置单独计算
 
 ---
 
@@ -39,71 +41,175 @@
 
 ```
 xiangqi/
-├── server.js              # Express + Socket.IO 服务（房间、走法校验、对局流程）
-├── shared/
-│   ├── rules.js           # 象棋规则引擎（Node / 浏览器 / Worker 三端共用同一份代码）
-│   └── ai.js              # AI 搜索引擎
+├── server.js                 # Express + Socket.IO：房间、座位、走法校验、计时、聊天
+├── shared/                   # 三端（Node / 浏览器 / Worker）共用，纯 UMD 无依赖
+│   ├── rules.js              # 规则引擎：走法生成、将军、将死、中文记谱、局面指纹
+│   ├── referee.js            # 裁判：局面重放 + 长将/重复/自然限着判定
+│   ├── ai.js                 # AI 搜索引擎
+│   └── opening.js            # 开局库（加载时自动校验坐标合法性）
 ├── public/
-│   ├── index.html         # 单页界面
+│   ├── index.html
 │   ├── css/style.css
 │   └── js/
-│       ├── app.js         # 棋盘渲染 + 对局逻辑
-│       └── worker.js      # AI 计算线程
+│       ├── app.js            # 棋盘渲染、对局逻辑、联机交互、断线重连
+│       ├── worker.js         # AI 计算线程
+│       └── sound.js          # WebAudio 合成音效（无音频文件）
 ├── deploy/
-│   ├── nginx.conf         # Nginx 反向代理示例（含 WebSocket 升级配置）
-│   └── xiangqi.service    # systemd 服务单元
-├── selftest.js            # 规则 & AI 自检（含 perft 基准校验）
-├── e2etest.js             # 联机流程端到端测试
+│   ├── install.sh            # 一键部署脚本（PM2/systemd + Nginx + 证书）
+│   ├── nginx.conf            # 反向代理模板（含 WebSocket 升级与 gzip）
+│   └── xiangqi.service       # systemd 单元
+├── selftest.js               # 规则 / 开局库 / 裁判 / AI 自检（含 perft 基准）
+├── smokeui.js                # 前端 DOM 冒烟测试（jsdom 驱动真实页面）
+├── e2etest.js                # 联机端到端测试（含重连、观战、超时）
 ├── Dockerfile / docker-compose.yml / ecosystem.config.js
 └── package.json
 ```
 
 ---
 
-## 快速开始（本地）
+## 本地运行
 
 ```bash
 git clone https://github.com/qinzhu0907/Chinese-chess.git
 cd Chinese-chess
-
-npm install     # 生产部署用 npm ci --omit=dev
-npm start
-# 打开 http://localhost:3000
+npm install          # 生产部署用 npm ci --omit=dev
+npm start            # → http://localhost:3000
 ```
 
-想和朋友在同一台机器上试：在本机开两个浏览器窗口，一个「创建房间」，把房间号填进另一个窗口的「加入房间」即可。
+自测一遍（建议改代码后运行）：
 
-> 局域网内其他设备访问：把 `localhost` 换成你电脑的局域网 IP（如 `http://192.168.1.20:3000`），并确保防火墙放行 3000 端口。
+```bash
+npm test             # 规则 + 开局库 + 裁判 + AI
+npm run test:ui      # 前端 DOM 冒烟（需要 jsdom，npm install 自带）
+npm run test:e2e     # 联机端到端（需先 npm start）
+```
 
 ---
 
-## 玩法说明
+## 部署到自己的服务器
 
-1. 大厅填写昵称 → 选择「人机对战」或「联机对战」
-2. 人机：选难度与执红/执黑（执黑时棋盘自动翻转）
+前提：一台有公网 IP 的 Linux 服务器（Ubuntu / Debian / CentOS 均可），域名 A 记录已指向它。
+
+### 一键部署（推荐）
+
+```bash
+# 1. 装 Node.js 18+（已有可跳过）
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs git nginx
+
+# 2. 拉代码
+sudo git clone https://github.com/qinzhu0907/Chinese-chess.git /opt/xiangqi
+cd /opt/xiangqi
+
+# 3. 一条命令搞定：依赖 + PM2 守护 + Nginx 反代 + HTTPS 证书
+sudo bash deploy/install.sh --domain 你的域名 --cert
+```
+
+脚本会自动完成：安装生产依赖 → PM2 启动并设开机自启 → 生成 Nginx 配置（替换域名、WebSocket 升级、gzip）→ 校验并重载 → 申请 Let's Encrypt 证书 → 轮询 `/healthz` 确认服务真的起来了。
+
+常用参数：
+
+| 参数 | 说明 |
+| --- | --- |
+| `--domain <域名>` | 生成 Nginx 配置用的域名 |
+| `--dir <路径>` | 安装目录，默认 `/opt/xiangqi` |
+| `--port <端口>` | 应用端口，默认 `3000` |
+| `--repo <git 地址>` | 从仓库拉取/更新代码（不填则复制当前项目） |
+| `--systemd` | 用 systemd 托管（默认 PM2） |
+| `--no-nginx` | 跳过 Nginx（前面已有 Caddy/Traefik 时用） |
+| `--cert` | 自动申请 HTTPS 证书 |
+| `--uninstall` | 停止并移除服务（保留代码） |
+
+更新代码：
+
+```bash
+sudo bash /opt/xiangqi/deploy/install.sh --domain 你的域名 --repo https://github.com/qinzhu0907/Chinese-chess.git
+```
+
+### 手动部署（三种任选）
+
+```bash
+# A. PM2
+sudo npm ci --omit=dev && sudo npm i -g pm2
+sudo pm2 start ecosystem.config.js --env production
+sudo pm2 save && sudo pm2 startup
+
+# B. systemd
+sudo cp deploy/xiangqi.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now xiangqi
+
+# C. Docker
+docker compose up -d --build
+```
+
+Nginx 反代 + 证书：
+
+```bash
+sudo cp deploy/nginx.conf /etc/nginx/conf.d/xiangqi.conf
+sudo sed -i 's/chess.example.com/你的域名/g' /etc/nginx/conf.d/xiangqi.conf
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d 你的域名
+```
+
+**关键点**：`location /socket.io/` 必须带 `Upgrade` 与 `Connection: $connection_upgrade` 头，`proxy_read_timeout` ≥ 120s，否则联机连不上或频繁掉线。模板里都已写好。
+
+部署后自检：
+
+```bash
+curl https://你的域名/healthz        # → {"ok":true,"rooms":0,"playing":0,...}
+curl https://你的域名/api/stats      # → 在线人数 / 对局数 / 等待中的房间
+```
+
+再用两台设备（或一个浏览器 + 手机）建房、加入，确认能落子、能聊天、刷新后能自动回到对局。
+
+### 环境变量
+
+复制 `.env.example` 为 `.env`（`install.sh` 会自动复制），或用 PM2 / Docker 的 env 传入：
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `PORT` | `3000` | 监听端口 |
+| `HOST` | `0.0.0.0` | 监听地址 |
+| `PER_MOVE` | `60` | 每步限时（秒），0 = 不限 |
+| `RECONNECT_GRACE` | `120000` | 掉线后座位保留时长（毫秒） |
+| `MAX_ROOMS` | `4000` | 房间数上限，防刷 |
+| `CORS_ORIGIN` | 空 | 跨域来源，同域部署无需设置 |
+
+### 生产注意事项
+
+- 房间状态在进程内存中，**单实例部署**即可；要多实例必须加 `@socket.io/redis-adapter` + Nginx 粘滞会话（`ip_hash`）
+- 空房、僵尸房（6 小时无活动）、超过 1 小时的无人等待房会被自动清理
+- 生产用 `npm ci --omit=dev`，不需要 devDependencies
+- 建议用 `pm2 monit` / `pm2 logs xiangqi` 观察内存与错误
+
+---
+
+## 玩法
+
+1. 大厅填昵称 → 选「人机对战」或「联机对战」
+2. 人机：选难度、执红/执黑（执黑自动翻转棋盘）
 3. 联机：
-   - **创建房间** → 得到 5 位房间号 → 发给好友
-   - **加入房间** → 输入好友的房间号
-   - **快速匹配** → 系统自动配对正在等待的玩家
-4. 点选己方棋子，绿点/绿圈为可落点，再点目标位置落子
-5. 对局中可：悔棋、提示（AI 推荐着法）、求和、认输、再来一局
-
-规则细节：红先黑后；将死或困毙对方为胜；连续 60 回合无吃子判和；联机模式下「悔棋」需对手同意。
+   - **创建房间** → 得到房间号 → 复制房间号或邀请链接发给好友
+   - **加入房间** → 输入房间号；也可直接点「等待中的房间」列表
+   - **快速匹配** → 自动撮合等待中的玩家
+   - 第三人起进入**观战**（只能看，不能走）
+4. 点棋子 → 绿点为可落点 → 点落点即走子
+5. 对局中可：悔棋（需对方同意）、提示、求和、认输、再来一局（双方确认后换先）
 
 ---
 
 ## AI 引擎
 
-| 难度 | 搜索层数上限 | 思考时间预算 | 备注 |
+| 难度 | 搜索层数上限 | 时间预算 | 说明 |
 | --- | --- | --- | --- |
-| 初级 | 2 层 | 0.4s | 30% 概率走随手棋，更像新手 |
-| 中级 | 6 层 | 1.6s | 攻守均衡 |
-| 高级 | 10 层 | 4.2s | 算路较深，思考稍慢 |
+| 初级 | 2 层 | 0.35s | 约 28% 概率走随手棋，像新手 |
+| 中级 | 6 层 | 1.4s | 攻守均衡 |
+| 高级 | 10 层 | 4.0s | 算路较深 |
+| 提示 | 8 层 | 1.8s | 不受难度影响 |
 
-- 评估 = 子力价值（车 900 / 炮 450 / 马 400 / 士象 200 / 兵 100）+ 位置价值表（兵卒过河、马路中心、炮镇中路、车压过河）
-- 置换表用 Zobrist 哈希，支持重复局面判和
-- 静态搜索（quiescence）避免"吃了就亏"的水平线效应
-- 服务端同一份 `shared/rules.js` 在 Node 中跑，用于联机走法校验，保证前后端规则完全一致
+- 评估 = 子力价值（车 900 / 炮 450 / 马 400 / 士象 200 / 兵 100）+ 位置价值表
+- 置换表用 Zobrist 哈希；静态搜索消除水平线效应；将军延伸提高战术嗅觉
+- 开局阶段先查 `shared/opening.js`，库内每步都在加载时用规则引擎校验过
 
 性能参考（普通笔记本）：初始局面深度 4 约 12 万节点 / 0.5 秒。
 
@@ -115,140 +221,78 @@ npm start
 
 | 事件 | 参数 | 说明 |
 | --- | --- | --- |
-| `create` | `{name}` | 创建房间，创建者执红 |
-| `join` | `{code, name}` | 加入房间，执黑 |
-| `quick` | `{name}` | 快速匹配 |
-| `move` | `{f, t}` | 走子（f/t 为 0–89 的格子索引，`idx = row*9 + col`） |
-| `undo-request` / `undo-reply` | `{accept}` | 悔棋请求与应答 |
-| `draw-offer` / `draw-reply` | `{accept}` | 求和请求与应答 |
+| `create` | `{name, perMove}` | 创建房间，创建者执红；`perMove` 为每步限时秒数 |
+| `join` | `{code, name, token}` | 加入房间；满员自动转观战；带 token 可坐回原位 |
+| `quick` | `{name, perMove}` | 快速匹配 |
+| `resume` | `{code, token}` | 断线重连，恢复座位与棋局 |
+| `move` | `{f, t}` | 走子（`idx = row * 9 + col`，0–89） |
+| `undo-request` / `undo-reply` | `{accept}` | 悔棋请求 / 应答 |
+| `draw-offer` / `draw-reply` | `{accept}` | 求和请求 / 应答 |
+| `rematch` | – | 再来一局（双方都发才算同意，随后换先） |
+| `chat` | `{text}` | 房间内发言（≤200 字，700ms 冷却） |
 | `resign` | – | 认输 |
-| `restart` | – | 再来一局（自动换先） |
-| `leave` | – | 离开房间 |
+| `leave` | – | 主动离开（对局中判对手胜） |
 
 服务端 → 客户端：
 
 | 事件 | 说明 |
 | --- | --- |
-| `room` | 房间状态（房间号、我的阵营、双方昵称、状态） |
-| `start` / `sync` | 开局 / 棋局同步（history、当前行棋方） |
-| `move` | 对手或自己的合法走子（双方都会收到，客户端以服务端为准） |
-| `end` | 对局结束 `{winner, reason}`，`winner = -1` 为和棋 |
-| `msg` | 提示信息（将军 / 非法走法 / 对手离开等） |
-| `draw-ask` / `undo-ask` | 对手发来的求和 / 悔棋请求 |
+| `room` | 房间信息：`{code, role, side, status, turn, perMove, spectators, names, connected, result}` |
+| `sync` | 全量同步：`{history, turn, status, deadline, now, names}`；悔棋/重连后都会下发 |
+| `move` | 合法走子：`{f, t, not, turn, check, deadline, now}` |
+| `end` | 结束：`{winner, reason}`，`winner = -1` 表示和棋 |
+| `msg` | 提示（将军 / 非法走法 / 对手离开等） |
+| `chat` | 聊天消息；发给本人时带 `me: true` |
+| `opponent` | 对手连接状态变化 `{side, connected, text}` |
+| `draw-ask` / `undo-ask` / `rematch-ask` | 对方发来的请求 |
+| `kick` | 同一账号在别处重连，当前连接被踢下线 |
 
-健康检查：`GET /healthz` → `{"ok":true,"rooms":N,"uptime":秒}`
+HTTP 接口：
 
----
-
-## 部署到服务器（你已有域名的情况）
-
-> 前提：一台有公网 IP 的服务器，域名已解析到该服务器（A 记录指向服务器 IP）。
-
-### 方式一：直接跑 Node + PM2（推荐，最简单）
-
-```bash
-# 1. 安装 Node 18+
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# 2. 上传代码到 /opt/xiangqi（或用 git clone）
-sudo mkdir -p /opt/xiangqi && cd /opt/xiangqi
-sudo git clone https://github.com/qinzhu0907/Chinese-chess.git .
-sudo npm ci --omit=dev
-
-# 3. 用 PM2 守护进程
-sudo npm i -g pm2
-pm2 start ecosystem.config.js --env production
-pm2 save && pm2 startup   # 开机自启
-
-# 常用命令
-pm2 logs xiangqi
-pm2 restart xiangqi
-pm2 monit
-```
-
-### 方式二：systemd（不用 PM2）
-
-```bash
-sudo mkdir -p /var/log/xiangqi
-sudo cp deploy/xiangqi.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now xiangqi
-sudo systemctl status xiangqi
-```
-
-### 方式三：Docker
-
-```bash
-docker compose up -d --build
-docker compose logs -f
-curl http://127.0.0.1:3000/healthz   # 健康检查
-```
-
-### Nginx 反向代理 + 域名 + HTTPS
-
-```bash
-sudo cp deploy/nginx.conf /etc/nginx/conf.d/xiangqi.conf
-sudo sed -i 's/chess.example.com/你的域名/g' /etc/nginx/conf.d/xiangqi.conf
-sudo nginx -t && sudo systemctl reload nginx
-
-# 免费证书（Let's Encrypt）
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d 你的域名
-```
-
-配置要点（示例文件里已写好）：
-
-- `location /socket.io/` 必须带 `Upgrade` / `Connection: upgrade` 头，否则联机对战连不上或退化成轮询
-- `proxy_read_timeout` 建议 ≥ 75s，避免长连接被切断
-- 证书申请完成后，把注释里的 HTTPS server 块启用、并把 80 端口改为 301 跳转
-
-部署完成后访问 `https://你的域名` 即可；联机走的是 WSS，浏览器不会报混合内容错误。
-
-### 生产环境注意事项
-
-- 房间状态保存在进程内存中，**单实例部署即可**；如果要多实例负载均衡，需要引入 `@socket.io/redis-adapter` + Nginx `ip_hash` 粘滞会话
-- 空闲房间与超过 6 小时的房间会被自动清理
-- 建议用 `npm ci --omit=dev` 安装，生产环境不需要 socket.io-client
+- `GET /healthz` → `{ok, rooms, playing, online, uptime}`
+- `GET /api/stats` → 在线人数、对局数、等待中的房间列表
 
 ---
 
-## 测试
+## 测试覆盖
 
-```bash
-npm test          # 规则引擎 + AI 自检
-npm run test:e2e  # 联机流程端到端测试（需先启动 npm start）
-npm run test:all
-```
+`npm test`（规则层）：
 
-`npm test` 会做这些校验：
+- **perft 基准**：`perft(1)=44`、`perft(2)=1920`、`perft(3)=79666`（与公开象棋基准一致）
+- 特殊规则：蹩马腿、塞象眼、炮隔子吃、兵过河横走、白脸将、将死
+- 中文记谱、局面指纹
+- 开局库：局面数、坐标合法性、首着合法
+- 裁判：重放、三次重复判和、长将判负、自然限着、将死
+- AI：着法合法、时间预算、自对弈 60 手不崩
 
-- **perft 基准**：`perft(1)=44`、`perft(2)=1920`、`perft(3)=79666`（与公开的象棋走法生成基准一致）
-- 特殊规则：蹩马腿、塞象眼、炮隔子吃、兵过河横走、白脸将、将死 / 困毙
-- 中文记谱：炮二平五 / 马二进三 / 兵九进一
-- AI：返回着法合法性、时间预算、连续自对弈不崩
+`npm run test:ui`（前端，jsdom 驱动真实 `index.html`）：27 项断言，覆盖大厅渲染、人机对局落子与 AI 应着、认输横幅、联机建房、走子同步、对手着法、聊天、观战禁用操作、结束事件。
+
+`npm run test:e2e`（联机，真实 Socket.IO）：建房/加入、走子同步与记谱、非法走法与轮次拦截、聊天双向、观战、悔棋、断线重连、认输、再来一局换先、快速匹配、步时超时判负。
 
 ---
 
 ## 常见问题
 
-**Q：联机提示连不上 / 一直转圈？**
-A：多半是 Nginx 少了 WebSocket 升级头，检查 `/socket.io/` 的 `Upgrade` 配置；或服务器防火墙未放行端口。
+**Q：联机连不上 / 一直转圈？**
+A：九成是 Nginx 少了 WebSocket 升级头。检查 `/socket.io/` 的 `Upgrade`、`Connection` 两行；第二可能是防火墙没放行 80/443。
 
-**Q：AI 思考时页面卡吗？**
-A：不卡。搜索引擎跑在 Web Worker 线程里，主线程只负责绘制。
+**Q：刷新手贱把对局刷没了？**
+A：不会。座位和棋局在服务端保留 2 分钟，页面重连后自动 `resume` 回原位；改 `RECONNECT_GRACE` 可调。
 
 **Q：能同时多少人在线？**
-A：单实例下房间数没有硬限制，主要瓶颈是内存与 CPU（每局棋盘很小，普通 1C1G 机器支撑几十个同时在线房间没问题）。
+A：每局只存一个小棋盘和几十条历史，内存占用很低。1C1G 机器跑几十个并发房间没问题，瓶颈通常是带宽和 CPU（AI 是客户端算的，不占服务器）。
 
-**Q：想把房间号改成自定义 / 加聊天 / 加观战？**
-A：服务端逻辑集中在 `server.js` 的房间管理部分，前端在 `public/js/app.js`，改动都不大。
+**Q：为什么走子要等服务端确认？**
+A：保证双方看到的局面绝对一致，也让改前端源码作弊失效。代价是局域网外多一个 RTT（通常几十毫秒）。
+
+**Q：能加 Redis / 多实例吗？**
+A：可以但需要改造：`@socket.io/redis-adapter` 广播 + Nginx `ip_hash` 粘滞，且房间状态要挪到 Redis。单机足够用，暂未内置。
 
 ---
 
 ## 技术栈
 
-Node.js 18+ · Express 4 · Socket.IO 4 · 原生 Canvas / ES5 前端 · Web Worker · Docker / PM2 / Nginx
+Node.js 18+ · Express 4 · Socket.IO 4 · 原生 Canvas / ES5 前端 · Web Worker · jsdom（测试）· Docker / PM2 / Nginx
 
 ## 许可
 

@@ -226,6 +226,13 @@
 
   function cloneBoard(bd) { return Int8Array.from(bd); }
 
+  /* 局面指纹：用于重复局面 / 长将判定。棋盘 + 走棋方唯一确定一个局面 */
+  function boardKey(bd, turn) {
+    var s = '';
+    for (var i = 0; i < 90; i++) s += String.fromCharCode(65 + bd[i]);
+    return s + (turn === RED ? 'r' : 'b');
+  }
+
   /* 中文记谱法，如「炮二平五」「马8进7」 */
   var CN = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
   function pieceName(p) { return NAMES[sideOf(p)][p & 7]; }
@@ -278,6 +285,7 @@
     makeMove: makeMove,
     unmakeMove: unmakeMove,
     cloneBoard: cloneBoard,
+    boardKey: boardKey,
     notation: notation,
     pieceName: pieceName
   };

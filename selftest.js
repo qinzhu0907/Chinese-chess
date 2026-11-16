@@ -133,5 +133,76 @@ console.log('\n[4] AI 引擎');
   ok(plies > 10, 'AI 能连续走子');
 }
 
+console.log('\n[5] 开局库');
+{
+  const BOOK = require('./shared/opening.js');
+  console.log(`  局面数 ${BOOK.positions}，丢弃线路 ${BOOK.rejected}`);
+  ok(BOOK.positions >= 10, '开局库已加载 ' + BOOK.positions + ' 个局面');
+  ok(BOOK.rejected === 0, '所有线路坐标合法（无丢弃）');
+
+  const b = XQ.initialBoard();
+  const first = BOOK.pick(b, XQ.RED);
+  ok(!!first && XQ.genLegal(b, XQ.RED).some(m => m[0] === first[0] && m[1] === first[1]),
+    '首着选自开局库且合法：' + (first ? XQ.notation(b, first[0], first[1]) : '无'));
+
+  // 库中每个候选都必须合法
+  let illegal = 0;
+  const keys = Object.keys(BOOK.book);
+  for (const k of keys) {
+    for (const mv of BOOK.book[k]) {
+      if (mv[0] < 0 || mv[0] > 89 || mv[1] < 0 || mv[1] > 89) illegal++;
+    }
+  }
+  ok(illegal === 0, '库内着法坐标范围正确');
+}
+
+console.log('\n[6] 裁判（局面重放与胜负判定）');
+{
+  const REF = require('./shared/referee.js');
+
+  // 正常重放：炮二平五 / 马8进7 / 马二进三
+  const st = REF.newState();
+  st.history.push({ f: 70, t: 67 }, { f: 7, t: 24 }, { f: 88, t: 69 });
+  REF.replay(st);
+  ok(st.turn === XQ.BLACK, '走 3 手后轮到黑方');
+  ok(st.noCapture === 3, '连续无吃子计数 = 3');
+  ok(st.history[0].not === '炮二平五', '重放生成记谱：' + st.history[0].not);
+  ok(REF.judge(st) === null, '常规局面不判胜负');
+
+  // 三次重复局面 → 判和
+  const rep = REF.newState();
+  rep.posCount.set('repeat-key', 3);
+  const r1 = REF.judge(rep);
+  ok(r1 && r1.winner === -1, '三次重复局面判和：' + (r1 && r1.reason));
+
+  // 长将：黑方连续将军 6 手 + 局面重复 → 黑方判负
+  const perp = REF.newState();
+  perp.posCount.set('repeat-key', 3);
+  perp.checks = [0, 6];            // checks[1] = 黑方连续将军
+  const r2 = REF.judge(perp);
+  ok(r2 && r2.winner === XQ.RED, '长将判负（黑方长将，红方胜）：' + (r2 && r2.reason));
+
+  // 自然限着：120 个半回合无吃子
+  const nat = REF.newState();
+  nat.noCapture = 120;
+  const r3 = REF.judge(nat);
+  ok(r3 && r3.winner === -1, '60 回合无吃子判和：' + (r3 && r3.reason));
+
+  // 将死
+  const mate = REF.newState();
+  const mb = new Int8Array(90);
+  mb[0 * 9 + 4] = XQ.K + XQ.BO;
+  mb[1 * 9 + 3] = XQ.R; mb[1 * 9 + 5] = XQ.R; mb[2 * 9 + 4] = XQ.R;
+  mb[9 * 9 + 4] = XQ.K;
+  mate.board = mb;
+  mate.turn = XQ.BLACK;
+  const r4 = REF.judge(mate);
+  ok(r4 && r4.winner === XQ.RED && r4.reason === '将死', '将死判定：' + (r4 && r4.reason));
+
+  // 局面指纹应随走棋方变化
+  const kb = XQ.initialBoard();
+  ok(XQ.boardKey(kb, XQ.RED) !== XQ.boardKey(kb, XQ.BLACK), '局面指纹区分走棋方');
+}
+
 console.log('\n' + (fail === 0 ? '全部通过 ✅' : fail + ' 项失败 ❌') + '\n');
 process.exit(fail === 0 ? 0 : 1);

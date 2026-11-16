@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>中国象棋 · 联机对战 & AI 对局</title>
+<meta name="theme-color" content="#f4f1ea">
+<meta name="description" content="中国象棋在线对战：支持好友房间联机、快速匹配、观战与内置 AI 人机对局。">
+<title>中国象棋 · 联机对战 &amp; AI 对局</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23f7e6bd' stroke='%23c0392b' stroke-width='3'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23c0392b' font-family='serif'%3E帥%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -13,14 +16,19 @@
       <span class="logo">帥</span>
       <div class="brand-text">
         <h1>中国象棋</h1>
-        <p>联机对战 · 人机对战</p>
+        <p>联机对战 · 人机对局 · 观战</p>
       </div>
     </div>
     <div class="top-actions">
+      <span id="connDot" class="conn-dot" title="服务器连接状态"></span>
       <span id="roomBadge" class="badge hidden"></span>
       <button id="btnHome" class="btn ghost hidden">返回大厅</button>
     </div>
   </header>
+
+  <div id="reconnectBar" class="reconnect hidden">
+    <span class="spinner"></span> 与服务器断开，正在自动重连…（座位会为你保留 2 分钟）
+  </div>
 
   <main>
     <section class="board-col">
@@ -34,12 +42,20 @@
           </div>
         </div>
       </div>
+
       <div class="board-foot">
         <div class="turn-chip" id="turnChip">准备开始</div>
         <div class="clocks">
-          <div class="clock"><span class="dot red"></span><span id="clockRed">00:00</span></div>
-          <div class="clock"><span class="dot black"></span><span id="clockBlack">00:00</span></div>
+          <div class="clock" id="clockBoxRed"><span class="dot red"></span><span id="clockRed">00:00</span></div>
+          <div class="clock" id="clockBoxBlack"><span class="dot black"></span><span id="clockBlack">00:00</span></div>
         </div>
+      </div>
+
+      <div class="board-tools">
+        <button id="btnSound" class="icon-btn" title="音效开关">🔊</button>
+        <button id="btnFlip" class="icon-btn" title="翻转棋盘">⇅</button>
+        <span id="evalChip" class="eval-chip"></span>
+        <span id="specNote" class="spec-note hidden">观战中</span>
       </div>
     </section>
 
@@ -54,13 +70,17 @@
         </label>
         <button class="big-btn" id="goAi">
           <strong>人机对战</strong>
-          <em>内置引擎，三档难度，随时开局</em>
+          <em>内置引擎 · 三档难度 · 随时开局</em>
         </button>
         <button class="big-btn" id="goOnline">
           <strong>联机对战</strong>
           <em>创建房间 / 房间号约战 / 快速匹配</em>
         </button>
-        <p class="tip">规则：红先黑后；将死或困毙对方为胜；60 回合无吃子判和。</p>
+        <p class="stats" id="homeStats">正在读取服务器状态…</p>
+        <p class="tip">
+          规则：红先黑后，将死或困毙对方为胜；同一局面出现三次判和，长将判负；
+          60 回合无吃子判和；超时判负。
+        </p>
       </div>
 
       <!-- 人机设置 -->
@@ -74,7 +94,7 @@
             <button data-level="3">高级</button>
           </div>
         </div>
-        <p class="hint" id="levelHint">中级：搜索约 5 层，思路稳健。</p>
+        <p class="hint" id="levelHint">中级：搜索约 6 层，攻守均衡。</p>
         <div class="field">
           <span>我执</span>
           <div class="seg" id="aiSideSeg">
@@ -89,18 +109,34 @@
       <!-- 联机 -->
       <div class="screen hidden" id="screen-online">
         <h2>联机对战</h2>
+        <div class="field">
+          <span>每步限时</span>
+          <div class="seg" id="perMoveSeg">
+            <button data-pm="30">30 秒</button>
+            <button data-pm="60" class="on">60 秒</button>
+            <button data-pm="120">2 分钟</button>
+            <button data-pm="0">不限</button>
+          </div>
+        </div>
         <button class="btn primary block" id="btnCreate">创建房间</button>
         <button class="btn block" id="btnQuick">快速匹配</button>
         <div class="field inline">
-          <input id="joinCode" type="text" placeholder="输入房间号" maxlength="6" autocomplete="off">
+          <input id="joinCode" type="text" placeholder="输入房间号" maxlength="6" autocomplete="off" spellcheck="false">
           <button class="btn" id="btnJoin">加入</button>
         </div>
         <div id="onlineMsg" class="msg"></div>
         <div id="roomBox" class="room-box hidden">
           <div class="code-label">房间号</div>
           <div class="code" id="roomCode">-----</div>
-          <button class="btn ghost small" id="btnCopy">复制房间号</button>
-          <p class="tip">把房间号发给好友，对方在上方输入即可加入对战。</p>
+          <div class="room-btns">
+            <button class="btn ghost small" id="btnCopy">复制房间号</button>
+            <button class="btn ghost small" id="btnCopyLink">复制邀请链接</button>
+          </div>
+          <p class="tip">把房间号或链接发给好友，对方打开即可与你对战；第三人起自动进入观战。</p>
+        </div>
+        <div class="room-list-wrap">
+          <div class="moves-head"><span>等待中的房间</span><span class="muted" id="roomListHint">每 5 秒刷新</span></div>
+          <div class="room-list" id="roomList"></div>
         </div>
         <button class="btn ghost block" id="backHome2">返回</button>
       </div>
@@ -118,11 +154,30 @@
           </div>
         </div>
         <div id="gameMsg" class="msg"></div>
-        <div class="moves-head">
-          <span>棋谱</span>
-          <span id="moveCount" class="muted">0 回合</span>
+        <div id="askBar" class="ask hidden">
+          <span id="askText"></span>
+          <button id="askYes" class="btn small primary" type="button">同意</button>
+          <button id="askNo" class="btn small" type="button">拒绝</button>
         </div>
-        <div class="moves" id="moveList"></div>
+
+        <div class="tabs">
+          <button class="tab on" data-pane="moves">棋谱</button>
+          <button class="tab" data-pane="chat">聊天<span id="chatDot" class="dot-badge hidden"></span></button>
+          <span class="tab-spacer"></span>
+          <span id="moveCount" class="muted small">0 回合</span>
+        </div>
+
+        <div class="pane" id="paneMoves">
+          <div class="moves" id="moveList"></div>
+        </div>
+        <div class="pane hidden" id="paneChat">
+          <div class="chat" id="chatList"></div>
+          <form class="chat-form" id="chatForm" autocomplete="off">
+            <input id="chatInput" type="text" placeholder="说点什么…" maxlength="100">
+            <button class="btn small" type="submit">发送</button>
+          </form>
+        </div>
+
         <div class="actions">
           <button class="btn" id="btnUndo">悔棋</button>
           <button class="btn" id="btnHint">提示</button>
@@ -134,11 +189,18 @@
 
     </aside>
   </main>
+
+  <footer class="foot">
+    <span>中国象棋 · 开源项目</span>
+    <a href="https://github.com/qinzhu0907/Chinese-chess" target="_blank" rel="noopener">GitHub</a>
+  </footer>
 </div>
 
 <script src="/shared/rules.js"></script>
+<script src="/shared/opening.js"></script>
 <script src="/shared/ai.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+<script src="/js/sound.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>

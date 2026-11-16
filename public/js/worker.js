@@ -4,7 +4,8 @@ importScripts('/shared/rules.js', '/shared/opening.js', '/shared/ai.js');
 var LEVELS = {
   1: { maxDepth: 2, timeMs: 350 },
   2: { maxDepth: 6, timeMs: 1400 },
-  3: { maxDepth: 10, timeMs: 4000 }
+  3: { maxDepth: 10, timeMs: 4000 },
+  4: { maxDepth: 14, timeMs: 8000 }
 };
 var HINT = { maxDepth: 8, timeMs: 1800 };
 

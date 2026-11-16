@@ -129,6 +129,12 @@ main { display: flex; gap: 22px; align-items: flex-start; }
   display: grid; place-items: center; transition: .15s;
 }
 .icon-btn:hover { background: #f2efe7; border-color: var(--gold); }
+.mini-btn {
+  border: 1px solid var(--line); background: #fbfaf7; color: var(--ink, #333);
+  border-radius: 999px; padding: 2px 10px; font-size: 12px; cursor: pointer;
+  transition: .15s; line-height: 1.5;
+}
+.mini-btn:hover { background: #f2efe7; border-color: var(--gold); }
 .eval-chip { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .spec-note {
   margin-left: auto; font-size: 12px; color: #8a5a00;

@@ -70,7 +70,7 @@
         </label>
         <button class="big-btn" id="goAi">
           <strong>人机对战</strong>
-          <em>内置引擎 · 三档难度 · 随时开局</em>
+          <em>内置引擎 · 四档难度 · 随时开局</em>
         </button>
         <button class="big-btn" id="goOnline">
           <strong>联机对战</strong>
@@ -92,9 +92,11 @@
             <button data-level="1">初级</button>
             <button data-level="2" class="on">中级</button>
             <button data-level="3">高级</button>
+            <button data-level="4">大师</button>
           </div>
         </div>
         <p class="hint" id="levelHint">中级：搜索约 6 层，攻守均衡。</p>
+        <p class="hint" id="aiRecord">战绩：0 胜 0 负 0 和</p>
         <div class="field">
           <span>我执</span>
           <div class="seg" id="aiSideSeg">
@@ -164,6 +166,8 @@
           <button class="tab on" data-pane="moves">棋谱</button>
           <button class="tab" data-pane="chat">聊天<span id="chatDot" class="dot-badge hidden"></span></button>
           <span class="tab-spacer"></span>
+          <button id="btnCopyMoves" class="mini-btn" title="复制棋谱文本">复制</button>
+          <button id="btnSaveMoves" class="mini-btn" title="下载棋谱文件">导出</button>
           <span id="moveCount" class="muted small">0 回合</span>
         </div>
 

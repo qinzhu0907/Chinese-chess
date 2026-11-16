@@ -36,11 +36,12 @@
     if (typeof fn === 'function') fn();
   }
 
-  var LEVEL_NAME = { 1: '初级', 2: '中级', 3: '高级' };
+  var LEVEL_NAME = { 1: '初级', 2: '中级', 3: '高级', 4: '大师' };
   var LEVEL_HINT = {
     1: '初级：搜索 2 层，会犯点小错，适合入门。',
     2: '中级：搜索约 6 层，攻守均衡。',
-    3: '高级：搜索 10 层，算路较深（思考稍慢）。'
+    3: '高级：搜索 10 层，算路较深（思考稍慢）。',
+    4: '大师：搜索 14 层、单步长考 8 秒，巅峰强度。'
   };
 
   /* ---------------- 状态 ---------------- */
@@ -518,6 +519,63 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  /* 棋谱导出：复制 / 下载 */
+  function buildScoreText() {
+    var lines = [];
+    lines.push('中国象棋对局谱');
+    lines.push('时间：' + new Date().toLocaleString());
+    lines.push('红方：' + (S.names[0] || '红方') + '　黑方：' + (S.names[1] || '黑方'));
+    var modeTxt = S.mode === 'ai'
+      ? '人机 · ' + (LEVEL_NAME[S.level] || '中级')
+      : '联机 · 房间 ' + (S.roomCode || '-');
+    var resTxt = '进行中';
+    if (S.result) {
+      resTxt = S.result.winner === -1 ? '和棋'
+        : (S.result.winner === RED ? '红方胜' : '黑方胜') + '（' + (S.result.reason || '') + '）';
+    }
+    lines.push('模式：' + modeTxt + '　结果：' + resTxt);
+    lines.push('');
+    for (var i = 0; i < S.history.length; i += 2) {
+      var no = (i / 2 + 1) + '.';
+      var r = S.history[i].not || '';
+      var b = S.history[i + 1] ? (S.history[i + 1].not || '') : '…';
+      lines.push(no + ' ' + r + '　' + b);
+    }
+    return lines.join('\n');
+  }
+
+  function copyMoves() {
+    if (!S.history.length) { setMsg('还没有棋谱可复制', 'warn'); return; }
+    var txt = buildScoreText();
+    var done = function () { setMsg('棋谱已复制到剪贴板', 'ok'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt, done); });
+    } else {
+      fallbackCopy(txt, done);
+    }
+  }
+  function fallbackCopy(txt, done) {
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { setMsg('复制失败，请用「导出」下载', 'warn'); }
+    document.body.removeChild(ta);
+  }
+  function saveMoves() {
+    if (!S.history.length) { setMsg('还没有棋谱可导出', 'warn'); return; }
+    var blob = new Blob([buildScoreText()], { type: 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '棋谱-' + new Date().toISOString().slice(0, 10) + '-' + (S.roomCode || '人机') + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    setMsg('棋谱已下载', 'ok');
+  }
+
   function appendChat(m) {
     S.chat.push(m);
     if (S.chat.length > 80) S.chat.shift();
@@ -567,6 +625,7 @@
       sub = sideLabel(result.winner) + ' 胜 · ' + (result.reason || '');
       if (iWon === null) sound('check');
       else sound(iWon ? 'win' : 'lose');
+      if (S.mode === 'ai') bumpRecord(iWon);
     }
     $('bannerTitle').textContent = title;
     $('bannerSub').textContent = sub;
@@ -575,12 +634,36 @@
     updateTurnUI();
   }
 
+  /* 人机战绩（仅人机模式、玩家本人对局时累计，存 localStorage） */
+  function loadRecord() {
+    try {
+      var r = JSON.parse(LS.get('xq_record', '') || '');
+      if (r && typeof r.w === 'number') return { w: r.w | 0, l: r.l | 0, d: r.d | 0 };
+    } catch (e) {}
+    return { w: 0, l: 0, d: 0 };
+  }
+  function bumpRecord(iWon) {
+    var r = loadRecord();
+    if (iWon === true) r.w++; else if (iWon === false) r.l++; else r.d++;
+    LS.set('xq_record', JSON.stringify(r));
+    renderRecord();
+  }
+  function renderRecord() {
+    var r = loadRecord(), el = $('aiRecord');
+    if (!el) return;
+    var total = r.w + r.l + r.d;
+    var rate = total ? Math.round(r.w * 100 / Math.max(1, r.w + r.l)) : 0;
+    el.textContent = '战绩：' + r.w + ' 胜 ' + r.l + ' 负 ' + r.d + ' 和' +
+      (total ? '（对局 ' + total + '，胜率 ' + rate + '%）' : '');
+  }
+
   /* ---------------- AI ---------------- */
   var worker = null, reqId = 0, pending = {};
   var LEVELS = {
     1: { maxDepth: 2, timeMs: 350 },
     2: { maxDepth: 6, timeMs: 1400 },
-    3: { maxDepth: 10, timeMs: 4000 }
+    3: { maxDepth: 10, timeMs: 4000 },
+    4: { maxDepth: 14, timeMs: 8000 }
   };
 
   function initWorker() {
@@ -1163,6 +1246,9 @@
     $('chatInput').value = '';
   });
 
+  $('btnCopyMoves').addEventListener('click', copyMoves);
+  $('btnSaveMoves').addEventListener('click', saveMoves);
+
   $('btnUndo').addEventListener('click', function () {
     if (S.mode === 'ai') {
       if (S.thinking) return;
@@ -1233,6 +1319,7 @@
 
   setScreen('home');
   renderMoves();
+  renderRecord();
   draw();
   refreshRooms(false);
 

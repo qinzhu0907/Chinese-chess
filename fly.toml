@@ -1,22 +1,46 @@
-# fly.toml app configuration file generated for chinese-chess on 2026-11-16T02:40:53Z
-#
-# See https://docs.fly.io/reference/configuration for information about how to use this file.
-#
+# Fly.io 部署配置 · 中国象棋
+# 应用在容器里监听 $PORT（这里设为 8080），与 internal_port 一致；
+# 监听地址 0.0.0.0 由 server.js 默认保证。
+# 区域：hkg 已被 Fly 弃用（现部署在 ord 芝加哥，用户所在地）。
+# 改完配置后执行：fly deploy
 
-app = 'chinese-chess'
-primary_region = 'ord'
+app = "xiangqi-qinzhu"
+primary_region = "ord"
 
 [build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  HOST = "0.0.0.0"
+  NODE_ENV = "production"
+  # 联机参数（与 deploy/docker-compose.stack.yml 保持一致）
+  PER_MOVE = "60"
+  RECONNECT_GRACE = "120000"
+  MAX_ROOMS = "4000"
+
 [http_service]
-  internal_port = 3000
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  # 没人对局且无请求时自动挂起（保留内存），来请求自动唤醒，省机器费
+  auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  # 健康检查走应用自带的 /healthz
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/healthz"
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
-  memory_mb = 256
+  size = "shared-cpu-1x"
+  memory = "256mb"

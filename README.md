@@ -56,7 +56,9 @@ xiangqi/
 │       └── sound.js          # WebAudio 合成音效（无音频文件）
 ├── deploy/
 │   ├── install.sh            # 一键部署脚本（PM2/systemd + Nginx + 证书）
-│   ├── nginx.conf            # 反向代理模板（含 WebSocket 升级与 gzip）
+│   ├── nginx.conf            # 宿主机 Nginx 反代模板（含 WebSocket 升级与 gzip）
+│   ├── nginx.docker.conf     # 容器内 Nginx 反代模板
+│   ├── docker-compose.stack.yml  # 应用 + Nginx（+ certbot）完整栈
 │   └── xiangqi.service       # systemd 单元
 ├── selftest.js               # 规则 / 开局库 / 裁判 / AI 自检（含 perft 基准）
 ├── smokeui.js                # 前端 DOM 冒烟测试（jsdom 驱动真实页面）
@@ -126,7 +128,7 @@ sudo bash deploy/install.sh --domain 你的域名 --cert
 sudo bash /opt/xiangqi/deploy/install.sh --domain 你的域名 --repo https://github.com/qinzhu0907/Chinese-chess.git
 ```
 
-### 手动部署（三种任选）
+### 手动部署（任选一种）
 
 ```bash
 # A. PM2
@@ -138,9 +140,18 @@ sudo pm2 save && sudo pm2 startup
 sudo cp deploy/xiangqi.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now xiangqi
 
-# C. Docker
+# C. Docker（只跑应用，端口 3000，前面自己接 Nginx/Caddy）
 docker compose up -d --build
+docker compose logs -f
+
+# D. Docker 全家桶（应用 + Nginx 一起，80/443 直接对外）
+docker compose -f deploy/docker-compose.stack.yml up -d --build
+# 申请证书（域名已解析、80 端口可达）：
+docker compose -f deploy/docker-compose.stack.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot -d 你的域名 --email 你的邮箱 --agree-tos --no-eff-email
 ```
+
+Docker 方案 D 会用 `deploy/nginx.docker.conf` 做反代（已含 WebSocket 升级头与 gzip）。拿到证书后把该文件里 443 段取消注释、80 段改成 301 跳转，再 `docker compose -f deploy/docker-compose.stack.yml exec nginx nginx -s reload`。
 
 Nginx 反代 + 证书：
 

@@ -1,5 +1,5 @@
 # ---- 运行阶段 ----
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -7,15 +7,17 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
-COPY server.js ./
+COPY server.js db.js auth.js ./
 COPY shared/ ./shared/
 COPY public/ ./public/
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=3000
+ENV PORT=8080
+# 数据库落盘到持久卷挂载点
+ENV DB_PATH=/data/xq.db
 
-EXPOSE 3000
+EXPOSE 8080
 
 # 容器直接跑 node，方便 Docker/K8s 发送 SIGTERM 时优雅退出
-CMD ["node", "server.js"]
+CMD ["node", "--no-warnings", "server.js"]

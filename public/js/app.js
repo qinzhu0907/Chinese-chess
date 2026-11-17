@@ -44,6 +44,47 @@
     4: '大师：搜索 14 层、单步长考 8 秒，巅峰强度。'
   };
 
+  /* 棋盘主题 */
+  var THEMES = {
+    classic: {
+      name: '木质',
+      boardFrom: '#fbeecc', boardTo: '#f2d69a',
+      line: '#7a4b21', river: 'rgba(122,75,33,.72)',
+      pieceFrom: '#fffaf0', pieceTo: '#f2dfb4',
+      redPiece: '#b0392b', blackPiece: '#26241f',
+      redRing: '#b0392b', blackRing: '#2b2926'
+    },
+    jade: {
+      name: '玉石',
+      boardFrom: '#eaf6ee', boardTo: '#cde8d6',
+      line: '#3d7a55', river: 'rgba(61,122,85,.7)',
+      pieceFrom: '#ffffff', pieceTo: '#dcefe2',
+      redPiece: '#c0392b', blackPiece: '#1f4a32',
+      redRing: '#c0392b', blackRing: '#1f4a32'
+    },
+    minimal: {
+      name: '简约',
+      boardFrom: '#f7f5f0', boardTo: '#e9e6de',
+      line: '#55524a', river: 'rgba(85,82,74,.6)',
+      pieceFrom: '#ffffff', pieceTo: '#e8e5de',
+      redPiece: '#c0392b', blackPiece: '#333',
+      redRing: '#c0392b', blackRing: '#333'
+    },
+    dark: {
+      name: '暗夜',
+      boardFrom: '#3a3d42', boardTo: '#2b2e33',
+      line: '#c9a86a', river: 'rgba(201,168,106,.7)',
+      pieceFrom: '#f5ecd7', pieceTo: '#d9c9a3',
+      redPiece: '#e05a4a', blackPiece: '#e8e3d5',
+      redRing: '#e05a4a', blackRing: '#2b2e33'
+    }
+  };
+  var THEME_KEY = 'xq_theme';
+  function currentTheme() {
+    var name = LS.get(THEME_KEY, 'classic');
+    return THEMES[name] || THEMES.classic;
+  }
+
   /* ---------------- 状态 ---------------- */
   var S = {
     screen: 'home',
@@ -82,14 +123,19 @@
   };
 
   var screens = {
-    home: $('screen-home'), ai: $('screen-ai'), online: $('screen-online'), game: $('screen-game')
+    home: $('screen-home'), ai: $('screen-ai'), online: $('screen-online'), game: $('screen-game'),
+    profile: $('screen-profile'), leaderboard: $('screen-leaderboard')
   };
   function setScreen(name) {
     S.screen = name;
     Object.keys(screens).forEach(function (k) {
-      screens[k].classList.toggle('hidden', k !== name);
+      if (screens[k]) screens[k].classList.toggle('hidden', k !== name);
     });
     $('btnHome').classList.toggle('hidden', name === 'home');
+    // 顶部导航高亮
+    document.querySelectorAll('.nav-btn[data-nav]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-nav') === name);
+    });
     if (name === 'online') refreshRooms(true);
   }
 
@@ -112,7 +158,7 @@
   function py(r) { return M + r * CELL; }
 
   function drawStars() {
-    ctx.strokeStyle = '#8b5a2b';
+    ctx.strokeStyle = currentTheme().line;
     ctx.lineWidth = 1.4;
     for (var i = 0; i < STARS.length; i++) {
       var d = disp(STARS[i][0], STARS[i][1]);
@@ -135,15 +181,16 @@
   function drawPiece(x, y, p, opts) {
     opts = opts || {};
     var side = XQ.sideOf(p);
+    var th = currentTheme();
     var g = ctx.createRadialGradient(x - 6, y - 8, 4, x, y, PR);
-    g.addColorStop(0, '#fffaf0');
-    g.addColorStop(1, '#f2dfb4');
+    g.addColorStop(0, th.pieceFrom);
+    g.addColorStop(1, th.pieceTo);
     ctx.beginPath();
     ctx.arc(x, y, PR, 0, Math.PI * 2);
     ctx.fillStyle = g;
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = side === RED ? '#b0392b' : '#2b2926';
+    ctx.strokeStyle = side === RED ? th.redRing : th.blackRing;
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(x, y, PR - 4, 0, Math.PI * 2);
@@ -151,7 +198,7 @@
     ctx.strokeStyle = side === RED ? 'rgba(176,57,43,.45)' : 'rgba(43,41,38,.45)';
     ctx.stroke();
 
-    ctx.fillStyle = side === RED ? '#b0392b' : '#26241f';
+    ctx.fillStyle = side === RED ? th.redPiece : th.blackPiece;
     ctx.font = '700 ' + (PR + 3) + 'px "KaiTi","STKaiti","楷体","Songti SC",serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -169,14 +216,15 @@
 
   function draw() {
     ctx.clearRect(0, 0, BW, BH);
+    var th = currentTheme();
     var g = ctx.createLinearGradient(0, 0, BW, BH);
-    g.addColorStop(0, '#fbeecc');
-    g.addColorStop(1, '#f2d69a');
+    g.addColorStop(0, th.boardFrom);
+    g.addColorStop(1, th.boardTo);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, BW, BH);
 
     // 网格
-    ctx.strokeStyle = '#7a4b21';
+    ctx.strokeStyle = th.line;
     ctx.lineWidth = 1.3;
     ctx.beginPath();
     for (var r = 0; r < 10; r++) {
@@ -208,7 +256,7 @@
 
     // 楚河汉界
     ctx.save();
-    ctx.fillStyle = 'rgba(122,75,33,.72)';
+    ctx.fillStyle = th.river;
     ctx.font = '600 28px "KaiTi","STKaiti","楷体",serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -632,6 +680,34 @@
     $('banner').classList.remove('hidden');
     setMsg(sub, 'ok');
     updateTurnUI();
+
+    // 人机对局：记录到账号历史（AI 不计 ELO）
+    if (S.mode === 'ai') persistAiGame(result);
+  }
+
+  /* 人机对局落库（仅记录历史，不计分） */
+  function persistAiGame(result) {
+    if (!window.XQAccount || !window.XQAccount.getToken) return;
+    var token = window.XQAccount.getToken();
+    if (!token) return; // 游客不记
+    var winner = result.winner; // -1 和, 0 红胜, 1 黑胜
+    var mySide = S.mySide;
+    var aiSide = 1 - mySide;
+    // 转成「红方视角」的 winner
+    var redWin = winner === -1 ? -1 : (winner === RED ? 0 : 1);
+    var moves = S.history.map(function (m) { return [m.f, m.t]; });
+    var notation = S.history.map(function (m) { return m.not || ''; }).filter(Boolean);
+    fetch('/api/games/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        mySide: mySide,
+        aiLevel: S.level,
+        winner: winner,
+        moves: moves,
+        notation: notation
+      })
+    }).catch(function () {});
   }
 
   /* 人机战绩（仅人机模式、玩家本人对局时累计，存 localStorage） */
@@ -748,6 +824,12 @@
   var socket = null;
   S.socketUp = false;
 
+  /* 取登录 token（供联机走子关联账号战绩） */
+  function authToken() {
+    if (window.XQAccount && window.XQAccount.getToken) return window.XQAccount.getToken();
+    return '';
+  }
+
   function ensureSocket() {
     if (socket) return socket;
     if (typeof io !== 'function') {
@@ -755,7 +837,10 @@
       $('onlineMsg').className = 'msg warn';
       return null;
     }
-    socket = io({ reconnection: true, reconnectionDelay: 800, reconnectionDelayMax: 4000 });
+    socket = io({
+      reconnection: true, reconnectionDelay: 800, reconnectionDelayMax: 4000,
+      auth: { token: authToken() }
+    });
 
     socket.on('connect', function () {
       S.socketUp = true;
@@ -1036,7 +1121,7 @@
     };
     if (S.socketUp) {
       // 只有同房间才带 token（用于坐回原位），避免串房
-      socket.emit('join', { code: code, name: S.name, token: S.roomCode === code ? S.token : '' }, cb);
+      socket.emit('join', { code: code, name: S.name, token: S.roomCode === code ? S.token : '', authToken: authToken() }, cb);
     } else {
       S.pendingJoin = code;
       $('onlineMsg').textContent = '正在连接服务器…';
@@ -1071,27 +1156,44 @@
     refreshRooms(false);
   }
 
+  /* 供 account.js 调用：切屏（profile / leaderboard） */
+  function accountSetScreen(name) { setScreen(name); }
+
   /* ---------------- 界面事件 ---------------- */
-  $('nick').value = LS.get('xq_name', '棋友');
-  $('nick').addEventListener('change', function () {
-    S.name = ($('nick').value || '棋友').trim().slice(0, 12);
-    LS.set('xq_name', S.name);
+  function loggedIn() {
+    return window.XQAccount && window.XQAccount.auth && window.XQAccount.auth.user;
+  }
+  function gateGuard() {
+    if (loggedIn()) return true;
+    if (window.XQAccount && window.XQAccount.requireLogin) window.XQAccount.requireLogin();
+    return false;
+  }
+  // 登录成功后自动加入邀请房间（若有 ?room=）
+  window.addEventListener('xq:login', function () {
+    if (S.pendingJoin) { goOnline(); flushPending(); }
   });
 
   $('goAi').addEventListener('click', function () {
-    S.name = ($('nick').value || '棋友').trim().slice(0, 12) || '棋友';
-    LS.set('xq_name', S.name);
+    if (!gateGuard()) return;
+    syncNick();
     setScreen('ai');
   });
 
   $('goOnline').addEventListener('click', function () {
-    S.name = ($('nick').value || '棋友').trim().slice(0, 12) || '棋友';
-    LS.set('xq_name', S.name);
+    if (!gateGuard()) return;
+    syncNick();
     goOnline();
   });
 
-  $('backHome1').addEventListener('click', function () { setScreen('home'); });
-  $('backHome2').addEventListener('click', function () { goHome(); });
+  function syncNick() {
+    var u = loggedIn();
+    S.name = u && u.nickname ? u.nickname : (LS.get('xq_name', '棋友') || '棋友');
+    LS.set('xq_name', S.name);
+  }
+
+  document.querySelectorAll('[data-back]').forEach(function (b) {
+    b.addEventListener('click', function () { setScreen('home'); });
+  });
   $('btnHome').addEventListener('click', function () { goHome(); });
 
   $('levelSeg').addEventListener('click', function (e) {
@@ -1147,7 +1249,7 @@
     if (!socket) return;
     $('onlineMsg').textContent = '正在创建房间…';
     $('onlineMsg').className = 'msg';
-    socket.emit('create', { name: S.name, perMove: currentPerMove() }, function (res) {
+    socket.emit('create', { name: S.name, perMove: currentPerMove(), authToken: authToken() }, function (res) {
       if (!res || !res.ok) {
         $('onlineMsg').textContent = (res && res.msg) || '创建失败';
         $('onlineMsg').className = 'msg warn';
@@ -1165,7 +1267,7 @@
     if (!socket) return;
     $('onlineMsg').textContent = '正在匹配对手…';
     $('onlineMsg').className = 'msg';
-    socket.emit('quick', { name: S.name, perMove: currentPerMove() }, function (res) {
+    socket.emit('quick', { name: S.name, perMove: currentPerMove(), authToken: authToken() }, function (res) {
       if (!res || !res.ok) {
         $('onlineMsg').textContent = (res && res.msg) || '匹配失败';
         $('onlineMsg').className = 'msg warn';
@@ -1304,6 +1406,18 @@
     if (S.sound) sound('select');
   });
 
+  /* 主题切换：循环切换四套主题 */
+  var THEME_ORDER = ['classic', 'jade', 'minimal', 'dark'];
+  function cycleTheme() {
+    var cur = LS.get(THEME_KEY, 'classic');
+    var idx = THEME_ORDER.indexOf(cur);
+    var next = THEME_ORDER[(idx + 1) % THEME_ORDER.length];
+    LS.set(THEME_KEY, next);
+    setMsg('棋盘主题：' + currentTheme().name, 'ok');
+    draw();
+  }
+  $('btnTheme').addEventListener('click', cycleTheme);
+
   /* ---------------- 启动 ---------------- */
   S.sound = LS.get('xq_sound', '1') !== '0';
   S.name = LS.get('xq_name', '棋友') || '棋友';
@@ -1329,16 +1443,142 @@
     if (!m) return;
     var code = m[1].toUpperCase();
     $('joinCode').value = code;
-    goOnline();
-    var saved = readSession();
-    if (saved && saved.code === code) {
-      // 自己上次就在这个房间：走 resume 恢复座位
-      $('onlineMsg').textContent = '正在恢复房间 ' + code + '…';
-    } else {
-      S.pendingJoin = code;
-      $('onlineMsg').textContent = '正在加入房间 ' + code + '…';
+    // 门禁：未登录时只记录待加入房间，登录成功后由 xq:login 事件自动进入
+    S.pendingJoin = code;
+    if (loggedIn()) {
+      goOnline();
       flushPending();
+      $('onlineMsg').textContent = '正在加入房间 ' + code + '…';
     }
     $('onlineMsg').className = 'msg';
   })();
+
+  /* ---------------- 对局复盘 ---------------- */
+  var rp = { moves: [], idx: 0, board: null, canvas: null, ctx: null, timer: 0 };
+
+  function rpInitCanvas() {
+    if (rp.canvas) return;
+    rp.canvas = document.getElementById('replayBoard');
+    if (!rp.canvas) return;
+    rp.ctx = rp.canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    rp.canvas.width = Math.round(BW * dpr);
+    rp.canvas.height = Math.round(BH * dpr);
+    rp.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function rpDraw() {
+    if (!rp.ctx || !rp.board) return;
+    rpRenderTo(rp.ctx);
+  }
+
+  function rpRenderTo(ctx) {
+    var board = rp.board;
+    var M = 38, CELL = 62, PR = 27, BW = M * 2 + CELL * 8, BH = M * 2 + CELL * 9;
+    function px(c) { return M + c * CELL; }
+    function py(r) { return M + r * CELL; }
+    ctx.clearRect(0, 0, BW, BH);
+    var g = ctx.createLinearGradient(0, 0, BW, BH);
+    g.addColorStop(0, '#fbeecc'); g.addColorStop(1, '#f2d69a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, BW, BH);
+    ctx.strokeStyle = '#7a4b21'; ctx.lineWidth = 1.3; ctx.beginPath();
+    for (var r = 0; r < 10; r++) { ctx.moveTo(M, py(r)); ctx.lineTo(M + 8 * CELL, py(r)); }
+    for (var c = 0; c < 9; c++) {
+      var x = px(c);
+      if (c === 0 || c === 8) { ctx.moveTo(x, py(0)); ctx.lineTo(x, py(9)); }
+      else { ctx.moveTo(x, py(0)); ctx.lineTo(x, py(4)); ctx.moveTo(x, py(5)); ctx.lineTo(x, py(9)); }
+    }
+    ctx.stroke();
+    ctx.lineWidth = 2.6; ctx.strokeRect(M, M, 8 * CELL, 9 * CELL);
+    // 九宫斜线
+    ctx.lineWidth = 1.3; ctx.beginPath();
+    for (var k = 0; k < 2; k++) {
+      var rr = k === 0 ? 0 : 7;
+      ctx.moveTo(px(3), py(rr)); ctx.lineTo(px(5), py(rr + 2));
+      ctx.moveTo(px(5), py(rr)); ctx.lineTo(px(3), py(rr + 2));
+    }
+    ctx.stroke();
+    // 楚河汉界
+    ctx.fillStyle = 'rgba(122,75,33,.72)';
+    ctx.font = '600 28px "KaiTi","STKaiti","楷体",serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('楚 河', px(2), M + 4.5 * CELL);
+    ctx.fillText('汉 界', px(6), M + 4.5 * CELL);
+    // 上一步痕迹
+    if (rp.lastMove) {
+      ctx.fillStyle = 'rgba(31,157,85,.34)';
+      [rp.lastMove[0], rp.lastMove[1]].forEach(function (s) {
+        ctx.beginPath(); ctx.arc(px(s % 9), py((s / 9) | 0), PR + 3, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+    // 棋子
+    for (var s = 0; s < 90; s++) {
+      var p = board[s];
+      if (!p) continue;
+      var side = XQ.sideOf(p);
+      var dx = px(s % 9), dy = py((s / 9) | 0);
+      var pg = ctx.createRadialGradient(dx - 6, dy - 8, 4, dx, dy, PR);
+      pg.addColorStop(0, '#fffaf0'); pg.addColorStop(1, '#f2dfb4');
+      ctx.beginPath(); ctx.arc(dx, dy, PR, 0, Math.PI * 2);
+      ctx.fillStyle = pg; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = side === RED ? '#b0392b' : '#2b2926'; ctx.stroke();
+      ctx.fillStyle = side === RED ? '#b0392b' : '#26241f';
+      ctx.font = '700 ' + (PR + 3) + 'px "KaiTi","STKaiti","楷体",serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(XQ.NAMES[side][p & 7], dx, dy + 1);
+    }
+  }
+
+  function rpSync() {
+    var bd = XQ.initialBoard();
+    for (var i = 0; i < rp.idx && i < rp.moves.length; i++) {
+      XQ.makeMove(bd, rp.moves[i][0], rp.moves[i][1]);
+    }
+    rp.board = bd;
+    rp.lastMove = rp.idx > 0 ? rp.moves[rp.idx - 1] : null;
+    rpDraw();
+    // 更新步数提示
+    var el = document.getElementById('replayMoves');
+    if (el && rp.notation && rp.notation.length) {
+      el.textContent = '第 ' + rp.idx + ' 手 / 共 ' + rp.moves.length + ' 手　' +
+        (rp.notation[rp.idx - 1] || '');
+    }
+  }
+
+  function showReplay(game) {
+    rpInitCanvas();
+    rp.moves = (game.moves || []).map(function (m) { return [m[0], m[1]]; });
+    rp.notation = game.notation || [];
+    rp.idx = 0;
+    rpSync();
+    // 绑定控制按钮
+    var prev = document.getElementById('rpPrev'), next = document.getElementById('rpNext'), play = document.getElementById('rpPlay');
+    if (prev) prev.onclick = function () { rpStep(-1); };
+    if (next) next.onclick = function () { rpStep(1); };
+    if (play) play.onclick = function () { rpTogglePlay(); };
+  }
+
+  function rpStep(d) {
+    rp.idx = Math.max(0, Math.min(rp.moves.length, rp.idx + d));
+    rpSync();
+  }
+  function rpTogglePlay() {
+    var play = document.getElementById('rpPlay');
+    if (rp.timer) { clearInterval(rp.timer); rp.timer = 0; if (play) play.textContent = '▶ 播放'; return; }
+    if (play) play.textContent = '⏸ 暂停';
+    rp.timer = setInterval(function () {
+      if (rp.idx >= rp.moves.length) { clearInterval(rp.timer); rp.timer = 0; if (play) play.textContent = '▶ 播放'; return; }
+      rpStep(1);
+    }, 600);
+  }
+  function stopReplay() {
+    if (rp.timer) { clearInterval(rp.timer); rp.timer = 0; }
+  }
+
+  /* 暴露给 account.js */
+  window.XQApp = {
+    setScreen: accountSetScreen,
+    showReplay: showReplay,
+    stopReplay: stopReplay
+  };
 })();

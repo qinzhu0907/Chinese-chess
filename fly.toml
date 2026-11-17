@@ -44,3 +44,8 @@ primary_region = "ord"
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"
+
+# 持久卷：SQLite 数据库文件落盘，跨部署/重启不丢
+[[mounts]]
+  source = "xq_data"
+  destination = "/data"

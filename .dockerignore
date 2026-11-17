@@ -10,3 +10,5 @@ docker-compose.yml
 deploy
 selftest.js
 e2etest.js
+smokeui.js
+data

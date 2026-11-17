@@ -3,25 +3,91 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#f4f1ea">
-<meta name="description" content="中国象棋在线对战：支持好友房间联机、快速匹配、观战与内置 AI 人机对局。">
-<title>中国象棋 · 联机对战 &amp; AI 对局</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23f7e6bd' stroke='%23c0392b' stroke-width='3'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23c0392b' font-family='serif'%3E帥%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#14110f">
+<meta name="description" content="中国象棋在线对战：好友房间联机、快速匹配、观战，以及内置 AI 人机对局。">
+<title>弈界 · 中国象棋</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314110f'/%3E%3Ccircle cx='32' cy='32' r='25' fill='%23f7e9c8' stroke='%23b3272d' stroke-width='3'/%3E%3Ctext x='32' y='44' font-size='32' text-anchor='middle' fill='%23b3272d' font-family='serif'%3E帥%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body class="gate-on">
+
+<!-- ============ 登录门禁（未登录时全屏覆盖） ============ -->
+<div id="loginGate" class="login-gate">
+  <div class="gate-visual">
+    <div class="gate-bg-grid"></div>
+    <div class="gate-brand">
+      <span class="gate-logo">帥</span>
+      <span class="gate-brand-text">弈界 <i>YI JIE</i></span>
+    </div>
+    <div class="gate-hero">
+      <div class="gate-kicker">CHINESE CHESS · ONLINE</div>
+      <h1>方寸之间<br><em>决胜千里</em></h1>
+      <p>与好友对弈，或与引擎切磋。<br>每一步，都是新的棋局。</p>
+    </div>
+    <div class="gate-features">
+      <div class="gf"><span class="gf-ico">⚔</span><b>公平对弈</b><i>服务端权威判罚</i></div>
+      <div class="gf"><span class="gf-ico">♟</span><b>段位晋升</b><i>ELO 积分体系</i></div>
+      <div class="gf"><span class="gf-ico">⚡</span><b>随时开局</b><i>人机 / 联机双模式</i></div>
+    </div>
+    <div class="gate-foot">楚河汉界 · 以棋会友</div>
+  </div>
+
+  <div class="gate-panel">
+    <div class="login-card">
+      <div class="login-card-head">
+        <span class="login-eyebrow">WELCOME</span>
+        <h2>登录弈界</h2>
+        <p>输入邮箱获取验证码，首次登录自动注册</p>
+      </div>
+
+      <div id="loginStepEmail">
+        <label class="field">
+          <span>邮箱地址</span>
+          <div class="input-icon">
+            <span class="ii">✉</span>
+            <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email">
+          </div>
+        </label>
+        <div class="field">
+          <span>验证码</span>
+          <div class="input-icon code-row">
+            <span class="ii">#</span>
+            <input id="loginCode" type="text" placeholder="6 位验证码" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+            <button class="btn code-btn" id="btnSendCode">发送验证码</button>
+          </div>
+        </div>
+        <div class="msg" id="loginError"></div>
+        <button class="btn primary block login-submit" id="btnLogin">登 录 <span>→</span></button>
+      </div>
+
+      <div class="login-note">
+        <span class="ln-dot"></span>
+        验证码 5 分钟内有效 · 60 秒后可重发
+      </div>
+      <div class="login-legal">登录即表示同意文明对弈，禁止作弊与恶意行为</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 主应用 ============ -->
 <div id="app">
   <header class="topbar">
     <div class="brand">
       <span class="logo">帥</span>
       <div class="brand-text">
-        <h1>中国象棋</h1>
+        <h1>弈界 · 中国象棋</h1>
         <p>联机对战 · 人机对局 · 观战</p>
       </div>
     </div>
+    <nav class="top-nav" id="topNav">
+      <button class="nav-btn on" data-nav="home">大厅</button>
+      <button class="nav-btn" data-nav="leaderboard">排行榜</button>
+      <button class="nav-btn" id="navProfile">我的</button>
+    </nav>
     <div class="top-actions">
       <span id="connDot" class="conn-dot" title="服务器连接状态"></span>
       <span id="roomBadge" class="badge hidden"></span>
+      <button id="userBadge" class="user-badge logged-out" title="登录"></button>
       <button id="btnHome" class="btn ghost hidden">返回大厅</button>
     </div>
   </header>
@@ -54,6 +120,7 @@
       <div class="board-tools">
         <button id="btnSound" class="icon-btn" title="音效开关">🔊</button>
         <button id="btnFlip" class="icon-btn" title="翻转棋盘">⇅</button>
+        <button id="btnTheme" class="icon-btn" title="切换棋盘主题">🎨</button>
         <span id="evalChip" class="eval-chip"></span>
         <span id="specNote" class="spec-note hidden">观战中</span>
       </div>
@@ -61,31 +128,56 @@
 
     <aside class="side-col">
 
-      <!-- 大厅 -->
+      <!-- ========== 大厅 ========== -->
       <div class="screen" id="screen-home">
-        <h2>开始对局</h2>
-        <label class="field">
-          <span>昵称</span>
-          <input id="nick" type="text" placeholder="请输入昵称" maxlength="12" value="棋友">
-        </label>
-        <button class="big-btn" id="goAi">
-          <strong>人机对战</strong>
-          <em>内置引擎 · 四档难度 · 随时开局</em>
-        </button>
-        <button class="big-btn" id="goOnline">
-          <strong>联机对战</strong>
-          <em>创建房间 / 房间号约战 / 快速匹配</em>
-        </button>
+        <section class="home-hero">
+          <span class="hero-kicker">READY TO PLAY</span>
+          <h2>落子无悔<br><em>棋逢对手</em></h2>
+          <p>选择你的战场，开始一局好棋</p>
+        </section>
+
+        <div class="dash-grid">
+          <div class="dash"><b id="dashOnline">0</b><i>在线棋友</i></div>
+          <div class="dash"><b id="dashPlaying">0</b><i>对局中</i></div>
+          <div class="dash"><b id="dashWaiting">0</b><i>等待加入</i></div>
+          <div class="dash rank-dash"><b id="dashRank">黄金</b><i id="dashRating">1200 分</i></div>
+        </div>
+
+        <div class="mode-grid">
+          <button class="mode-card mode-ai" id="goAi">
+            <div class="mc-head"><span class="mc-icon">♟</span><span class="mc-tag">单机</span></div>
+            <b>人机对战</b>
+            <em>四档难度 · 随时开局</em>
+            <span class="mc-go">开始 →</span>
+          </button>
+          <button class="mode-card mode-online" id="goOnline">
+            <div class="mc-head"><span class="mc-icon">⚔</span><span class="mc-tag live">实时</span></div>
+            <b>联机对战</b>
+            <em>房间约战 · 快速匹配</em>
+            <span class="mc-go">进入 →</span>
+          </button>
+        </div>
+
+        <div class="board-panel">
+          <div class="bp-head"><span class="bp-title">🏆 高手榜</span><button class="bp-more" id="btnLeaderboard">查看全部 →</button></div>
+          <div class="home-leaders" id="homeLeaders"><div class="bp-empty">正在加载排行榜…</div></div>
+        </div>
+
+        <div class="board-panel latest-panel">
+          <div class="bp-head"><span class="bp-title">🕘 最近对局</span><button class="bp-more" id="btnProfHome">我的战绩 →</button></div>
+          <div class="home-recent" id="homeRecent"><div class="bp-empty">尚无对局</div></div>
+        </div>
+
         <p class="stats" id="homeStats">正在读取服务器状态…</p>
-        <p class="tip">
-          规则：红先黑后，将死或困毙对方为胜；同一局面出现三次判和，长将判负；
-          60 回合无吃子判和；超时判负。
-        </p>
+        <details class="rule-fold">
+          <summary>对局规则</summary>
+          <p>红先黑后，将死或困毙对方为胜；同一局面出现三次判和，长将判负；60 回合无吃子判和；超时判负。</p>
+        </details>
       </div>
 
-      <!-- 人机设置 -->
+      <!-- ========== 人机设置 ========== -->
       <div class="screen hidden" id="screen-ai">
-        <h2>人机对战</h2>
+        <div class="screen-head"><button class="back-btn" data-back="home">←</button><div><h2>人机对战</h2><p>选择难度与执棋方</p></div></div>
         <div class="field">
           <span>难度</span>
           <div class="seg" id="levelSeg">
@@ -104,13 +196,12 @@
             <button data-side="1">黑方（后手）</button>
           </div>
         </div>
-        <button class="btn primary block" id="startAi">开始对局</button>
-        <button class="btn ghost block" id="backHome1">返回</button>
+        <button class="btn primary block big-action" id="startAi">开始对局</button>
       </div>
 
-      <!-- 联机 -->
+      <!-- ========== 联机 ========== -->
       <div class="screen hidden" id="screen-online">
-        <h2>联机对战</h2>
+        <div class="screen-head"><button class="back-btn" data-back="home">←</button><div><h2>联机对战</h2><p>与好友或棋友实时对弈</p></div></div>
         <div class="field">
           <span>每步限时</span>
           <div class="seg" id="perMoveSeg">
@@ -120,7 +211,7 @@
             <button data-pm="0">不限</button>
           </div>
         </div>
-        <button class="btn primary block" id="btnCreate">创建房间</button>
+        <button class="btn primary block big-action" id="btnCreate">创建房间</button>
         <button class="btn block" id="btnQuick">快速匹配</button>
         <div class="field inline">
           <input id="joinCode" type="text" placeholder="输入房间号" maxlength="6" autocomplete="off" spellcheck="false">
@@ -140,10 +231,9 @@
           <div class="moves-head"><span>等待中的房间</span><span class="muted" id="roomListHint">每 5 秒刷新</span></div>
           <div class="room-list" id="roomList"></div>
         </div>
-        <button class="btn ghost block" id="backHome2">返回</button>
       </div>
 
-      <!-- 对局面板 -->
+      <!-- ========== 对局面板 ========== -->
       <div class="screen hidden" id="screen-game">
         <div class="players">
           <div class="player" id="pRed">
@@ -191,11 +281,67 @@
         <button class="btn primary block" id="btnAgain">再来一局</button>
       </div>
 
+      <!-- ========== 个人档案 ========== -->
+      <div class="screen hidden" id="screen-profile">
+        <div class="screen-head"><button class="back-btn" data-back="home">←</button><div><h2>个人档案</h2><p>战绩与段位</p></div></div>
+        <div class="profile-card">
+          <div class="prof-head">
+            <span class="prof-icon" id="profRankIcon">♟</span>
+            <div class="prof-title">
+              <b id="profName">棋友</b>
+              <i id="profRank">黄金</i>
+            </div>
+            <div class="prof-rating">
+              <b id="profRating">1200</b>
+              <i id="profPeak">历史最高 1200</i>
+            </div>
+          </div>
+          <div class="prof-stats">
+            <div class="ps"><b id="profWins">0</b><i>胜</i></div>
+            <div class="ps"><b id="profLosses">0</b><i>负</i></div>
+            <div class="ps"><b id="profDraws">0</b><i>和</i></div>
+            <div class="ps"><b id="profRate">0%</b><i>胜率</i></div>
+          </div>
+          <div class="prof-more">
+            <span>当前连<span id="profStreak">—</span></span>
+            <span>最佳连胜 <b id="profBest">0</b></span>
+            <span id="profNext">—</span>
+          </div>
+        </div>
+        <h3>对局历史</h3>
+        <div class="history" id="gameHistory"></div>
+        <button class="btn danger ghost block" id="btnLogout">退出登录</button>
+      </div>
+
+      <!-- ========== 排行榜 ========== -->
+      <div class="screen hidden" id="screen-leaderboard">
+        <div class="screen-head"><button class="back-btn" data-back="home">←</button><div><h2>高手排行榜</h2><p>按 ELO 积分实时排序</p></div></div>
+        <div class="lb-podium" id="lbPodium"></div>
+        <div class="lb-list" id="lbList"></div>
+      </div>
+
     </aside>
   </main>
 
+  <!-- 复盘弹窗 -->
+  <div class="modal hidden" id="replayModal">
+    <div class="modal-inner wide">
+      <h3>对局复盘</h3>
+      <div class="replay-board-wrap">
+        <canvas id="replayBoard"></canvas>
+      </div>
+      <div class="replay-controls">
+        <button class="btn small" id="rpPrev">⏮ 上一步</button>
+        <button class="btn small" id="rpPlay">▶ 播放</button>
+        <button class="btn small" id="rpNext">下一步 ⏭</button>
+      </div>
+      <div class="moves" id="replayMoves"></div>
+      <button class="btn ghost block" id="btnCloseReplay">关闭</button>
+    </div>
+  </div>
+
   <footer class="foot">
-    <span>中国象棋 · 开源项目</span>
+    <span>弈界 · 中国象棋</span>
     <a href="https://github.com/qinzhu0907/Chinese-chess" target="_blank" rel="noopener">GitHub</a>
   </footer>
 </div>
@@ -205,6 +351,7 @@
 <script src="/shared/ai.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/sound.js"></script>
+<script src="/js/account.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>

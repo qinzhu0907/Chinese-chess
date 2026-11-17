@@ -147,11 +147,25 @@ function boot() {
     terminate() {}
   };
 
-  window.fetch = function () {
-    return Promise.resolve({
-      json: () => Promise.resolve({ online: 3, playing: 1, rooms: 2, waitingRooms: [{ code: 'ZZTOP', host: '小明' }] })
-    });
+  window.fetch = function (url) {
+    let data = { online: 3, playing: 1, rooms: 2, waitingRooms: [{ code: 'ZZTOP', host: '小明' }] };
+    if (String(url).indexOf('/api/leaderboard') >= 0) {
+      data = { ok: true, list: [{ id: 1, nickname: '棋圣', rating: 1800, rank: '大师', rankIcon: '👑', rankColor: '#b0392b' }] };
+    } else if (String(url).indexOf('/api/games') >= 0) {
+      data = { ok: true, games: [] };
+    }
+    return Promise.resolve({ json: () => Promise.resolve(data) });
   };
+
+  // 登录态桩：smokeui 只加载 app.js，注入已登录用户以通过门禁
+  window.XQAccount = {
+    auth: { user: { id: 1, nickname: '测试棋友', rating: 1200 }, token: 'test-token' },
+    getToken: () => 'test-token',
+    requireLogin: () => true,
+    setScreen: () => {}
+  };
+  // jsdom 未实现 Event 构造时的兜底
+  if (!window.Event) window.Event = function (t) { this.type = t; };
 
   window.eval(fs.readFileSync(path.join(ROOT, 'public/js/sound.js'), 'utf8'));
   window.eval(fs.readFileSync(path.join(ROOT, 'public/js/app.js'), 'utf8'));

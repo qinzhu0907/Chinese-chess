@@ -30,3 +30,6 @@ coverage/
 # 部署产物
 *.tgz
 deploy/nginx.active.conf
+
+# 数据库（本地运行生成的 SQLite 文件，不提交）
+data/

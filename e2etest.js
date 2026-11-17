@@ -10,8 +10,12 @@ let fail = 0;
 function ok(c, m) { console.log((c ? '  ✓ ' : '  ✗ ') + m); if (!c) fail++; }
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-function connect() {
-  const s = io(URL, { transports: ['websocket'], forceNew: true });
+let AUTH_TOKEN = '';
+function connect(withAuth = true) {
+  const s = io(URL, {
+    transports: ['websocket'], forceNew: true,
+    auth: withAuth ? { token: AUTH_TOKEN } : {}
+  });
   return new Promise((res) => s.on('connect', () => res(s)));
 }
 function call(sock, ev, payload) {
@@ -24,6 +28,17 @@ function call(sock, ev, payload) {
   ok(health.ok === true, '/healthz 正常：' + JSON.stringify(health));
   const stats = await fetch(URL + '/api/stats').then(r => r.json());
   ok(typeof stats.online === 'number' && Array.isArray(stats.waitingRooms), '/api/stats 返回结构正确');
+
+  console.log('\n[0.5] 登录门禁');
+  const login = await fetch(URL + '/api/auth/test-login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+  }).then(r => r.json()).catch(() => ({}));
+  ok(login.ok && login.token, '测试账号登录成功，拿到会话 token');
+  AUTH_TOKEN = login.token || '';
+  const anon = await connect(false);
+  const anonRes = await call(anon, 'create', { name: '游客', perMove: 60 });
+  ok(anonRes && anonRes.ok === false && /登录/.test(anonRes.msg || ''), '未登录无法建房：' + (anonRes && anonRes.msg));
+  anon.close();
 
   console.log('\n[1] 创建 / 加入房间');
   const a = await connect();

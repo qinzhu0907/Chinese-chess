@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#14110f">
+<title>登录 · 中国象棋</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314110f'/%3E%3Ccircle cx='32' cy='32' r='25' fill='%23f7e9c8' stroke='%23b3272d' stroke-width='3'/%3E%3Ctext x='32' y='44' font-size='32' text-anchor='middle' fill='%23b3272d' font-family='serif'%3E帥%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="login-gate">
+  <div class="gate-visual">
+    <div class="gate-bg-grid"></div>
+    <div class="gate-brand">
+      <span class="gate-logo">帥</span>
+      <span class="gate-brand-text">中国象棋 <i>CHINESE CHESS</i></span>
+    </div>
+    <div class="gate-hero">
+      <div class="gate-kicker">CHINESE CHESS · ONLINE</div>
+      <h1>方寸之间<br><em>决胜千里</em></h1>
+      <p>与好友对弈，或与引擎切磋。<br>每一步，都是新的棋局。</p>
+    </div>
+    <div class="gate-features">
+      <div class="gf"><span class="gf-ico">⚔</span><b>公平对弈</b><i>服务端权威判罚</i></div>
+      <div class="gf"><span class="gf-ico">♟</span><b>段位晋升</b><i>ELO 积分体系</i></div>
+      <div class="gf"><span class="gf-ico">⚡</span><b>随时开局</b><i>人机 / 联机双模式</i></div>
+    </div>
+    <div class="gate-foot">楚河汉界 · 以棋会友</div>
+  </div>
+
+  <div class="gate-panel">
+    <div class="login-card">
+      <div class="login-card-head">
+        <span class="login-eyebrow">WELCOME</span>
+        <h2>登录 / 注册</h2>
+        <p>输入邮箱获取验证码，首次登录自动注册</p>
+      </div>
+
+      <label class="field">
+        <span>邮箱地址</span>
+        <div class="input-icon">
+          <span class="ii">✉</span>
+          <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+      </label>
+      <div class="field">
+        <span>验证码</span>
+        <div class="input-icon code-row">
+          <span class="ii">#</span>
+          <input id="loginCode" type="text" placeholder="6 位验证码" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+          <button class="btn code-btn" id="btnSendCode">发送验证码</button>
+        </div>
+      </div>
+      <div class="msg" id="loginError"></div>
+      <button class="btn primary block login-submit" id="btnLogin">登 录 <span>→</span></button>
+
+      <div class="login-note">
+        <span class="ln-dot"></span>
+        验证码 5 分钟内有效 · 60 秒后可重发
+      </div>
+      <div class="login-legal">登录即表示同意文明对弈，禁止作弊与恶意行为</div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/core.js"></script>
+<script src="/js/auth-page.js"></script>
+</body>
+</html>

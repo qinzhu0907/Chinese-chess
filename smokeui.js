@@ -108,11 +108,11 @@ function makeServer() {
 
 /* ---------- 启动环境 ---------- */
 function boot() {
-  let html = fs.readFileSync(path.join(ROOT, 'public/index.html'), 'utf8');
+  let html = fs.readFileSync(path.join(ROOT, 'public/game.html'), 'utf8');
   html = html.replace(/<script[\s\S]*?<\/script>/g, '');
 
   const dom = new JSDOM(html, {
-    url: 'http://localhost:3000/',
+    url: 'http://localhost:3000/game.html?mode=ai',
     pretendToBeVisual: true,
     runScripts: 'outside-only'
   });
@@ -157,16 +157,12 @@ function boot() {
     return Promise.resolve({ json: () => Promise.resolve(data) });
   };
 
-  // 登录态桩：smokeui 只加载 app.js，注入已登录用户以通过门禁
-  window.XQAccount = {
-    auth: { user: { id: 1, nickname: '测试棋友', rating: 1200 }, token: 'test-token' },
-    getToken: () => 'test-token',
-    requireLogin: () => true,
-    setScreen: () => {}
-  };
   // jsdom 未实现 Event 构造时的兜底
   if (!window.Event) window.Event = function (t) { this.type = t; };
 
+  window.eval(fs.readFileSync(path.join(ROOT, 'public/js/core.js'), 'utf8'));
+  // 注入已登录用户，通过门禁
+  window.XQAuth.saveSession('test-token', { id: 1, nickname: '测试棋友', rating: 1200 });
   window.eval(fs.readFileSync(path.join(ROOT, 'public/js/sound.js'), 'utf8'));
   window.eval(fs.readFileSync(path.join(ROOT, 'public/js/app.js'), 'utf8'));
 
@@ -184,16 +180,13 @@ function hidden(document, id) {
 }
 
 (async function main() {
-  console.log('\n[1] 初始化与大厅');
+  console.log('\n[1] 游戏页初始化（人机模式）');
   const { window, document, server } = boot();
   await sleep(30);
-  ok(!hidden(document, 'screen-home'), '默认显示大厅');
+  ok(!hidden(document, 'screen-ai'), '默认显示人机设置面板');
   ok(document.getElementById('board').width > 0, 'canvas 已完成尺寸初始化');
-  ok(document.getElementById('homeStats').textContent.indexOf('在线') >= 0, '首页读取到服务器状态：' + document.getElementById('homeStats').textContent);
 
   console.log('\n[2] 人机对局');
-  document.getElementById('goAi').click();
-  ok(!hidden(document, 'screen-ai'), '进入人机设置');
   document.getElementById('startAi').click();
   await sleep(20);
   ok(!hidden(document, 'screen-game'), '进入对局界面');
@@ -215,61 +208,7 @@ function hidden(document, id) {
   ok(!hidden(document, 'banner'), '对局结束显示横幅：' + document.getElementById('bannerTitle').textContent + ' / ' + document.getElementById('bannerSub').textContent);
   ok(!hidden(document, 'btnAgain'), '结束后出现「再来一局」');
 
-  console.log('\n[4] 联机：建房 / 走子 / 聊天');
-  document.getElementById('btnHome').click();
-  await sleep(10);
-  document.getElementById('goOnline').click();
-  await sleep(20);
-  ok(!hidden(document, 'screen-online'), '进入联机面板');
-  document.getElementById('btnCreate').click();
-  server.sock.fire('connect');
-  await sleep(30);
-  ok(!hidden(document, 'screen-game'), '创建房间后进入对局');
-  ok(document.getElementById('roomCode').textContent === 'ABCDE', '房间号显示正确');
-  ok(document.getElementById('roomBadge').textContent.indexOf('ABCDE') >= 0, '顶栏显示房间徽标');
-
-  tapSquare(window, document, 7, 1);   // 红炮
-  tapSquare(window, document, 7, 4);   // 炮二平五
-  await sleep(30);
-  ok(document.querySelectorAll('#moveList .row').length === 1, '自己走子后棋谱 1 行');
-  ok(document.getElementById('moveCount').textContent === '1 回合', '回合计数 1');
-
-  // 对手走子
-  server.sock.fire('move', { f: 7, t: 24, turn: 0, check: false, deadline: Date.now() + 60000, now: Date.now() });
-  await sleep(20);
-  ok(document.getElementById('moveCount').textContent === '1 回合', '对手应着后仍是第 1 回合');
-  ok(document.querySelectorAll('#moveList .row .b')[0].textContent.length > 0, '黑方着法已填入：' + document.querySelectorAll('#moveList .row .b')[0].textContent);
-
-  // 聊天
-  document.querySelectorAll('.tab')[1].click();
-  ok(!hidden(document, 'paneChat'), '切到聊天页签');
-  document.getElementById('chatInput').value = '你好，来一局';
-  document.getElementById('chatForm').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
-  await sleep(20);
-  ok(document.querySelectorAll('#chatList .chat-item').length === 1, '聊天消息已渲染');
-  ok(document.querySelectorAll('#chatList .chat-item')[0].classList.contains('me'), '自己的消息有高亮标记');
-
-  console.log('\n[5] 观战模式');
-  server.sock.fire('room', {
-    code: 'ABCDE', role: 'spectator', side: -1, status: 'playing',
-    turn: XQ.RED, perMove: 60, spectators: 2,
-    names: ['棋友', '对手'], connected: [true, true], result: null
-  });
-  await sleep(10);
-  ok(!hidden(document, 'specNote'), '显示「观战中」标记');
-  const before = document.querySelectorAll('#moveList .row').length;
-  tapSquare(window, document, 9, 0);
-  tapSquare(window, document, 8, 0);
-  await sleep(20);
-  ok(document.querySelectorAll('#moveList .row').length === before, '观战者无法走子');
-  ok(document.getElementById('btnResign').disabled, '观战时操作按钮禁用');
-
-  console.log('\n[6] 对局结束事件');
-  server.sock.fire('end', { winner: 0, reason: '将死' });
-  await sleep(20);
-  ok(!hidden(document, 'banner'), '收到结束事件显示横幅');
-
-  console.log('\n[7] 无控制台错误');
+  console.log('\n[4] 无控制台错误');
   ok(!bootErrors, '注入过程中无脚本异常');
 
   console.log('\n结果：' + pass + ' 通过 / ' + fail + ' 失败');

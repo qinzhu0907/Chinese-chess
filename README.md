@@ -58,12 +58,21 @@ xiangqi/
 │   ├── ai.js                 # AI 搜索引擎
 │   └── opening.js            # 开局库（加载时自动校验坐标合法性）
 ├── public/
-│   ├── index.html
+│   ├── index.html             # 主页（大厅：模式入口 / 榜单 / 最近对局）
+│   ├── login.html             # 登录页（邮箱验证码）
+│   ├── game.html              # 游戏页（人机 / 联机，?mode=ai|online）
+│   ├── profile.html           # 个人档案页
+│   ├── leaderboard.html       # 排行榜页
 │   ├── css/style.css
 │   └── js/
-│       ├── app.js            # 棋盘渲染、对局逻辑、联机交互、断线重连
-│       ├── worker.js         # AI 计算线程
-│       └── sound.js          # WebAudio 合成音效（无音频文件）
+│       ├── core.js            # 认证状态 + API + 门禁守卫（各页共用）
+│       ├── auth-page.js       # 登录页逻辑
+│       ├── home.js            # 主页逻辑
+│       ├── app.js             # 游戏页：棋盘渲染、对局逻辑、联机交互、断线重连
+│       ├── profile.js         # 档案页逻辑
+│       ├── leaderboard.js     # 排行榜页逻辑
+│       ├── worker.js          # AI 计算线程
+│       └── sound.js           # WebAudio 合成音效（无音频文件）
 ├── deploy/
 │   ├── install.sh            # 一键部署脚本（PM2/systemd + Nginx + 证书）
 │   ├── docker-deploy.sh      # Docker 一键部署（up / ssl / renew / status / logs / down）
@@ -73,8 +82,9 @@ xiangqi/
 │   ├── docker-compose.stack.yml  # 应用 + Nginx（+ certbot）完整栈
 │   └── xiangqi.service       # systemd 单元
 ├── selftest.js               # 规则 / 开局库 / 裁判 / AI 自检（含 perft 基准）
-├── smokeui.js                # 前端 DOM 冒烟测试（jsdom 驱动真实页面）
-├── e2etest.js                # 联机端到端测试（含重连、观战、超时）
+├── smokeui.js                # 游戏页 DOM 冒烟测试（jsdom 驱动）
+├── gatetest.js               # 多页面流程测试（登录→主页→游戏页门禁）
+├── e2etest.js                # 联机端到端测试（含重连、观战、超时、门禁）
 ├── Dockerfile / docker-compose.yml / ecosystem.config.js
 └── package.json
 ```
@@ -301,7 +311,9 @@ HTTP 接口：
 - 裁判：重放、三次重复判和、长将判负、自然限着、将死
 - AI：着法合法、时间预算、自对弈 60 手不崩
 
-`npm run test:ui`（前端，jsdom 驱动真实 `index.html`）：27 项断言，覆盖大厅渲染、人机对局落子与 AI 应着、认输横幅、联机建房、走子同步、对手着法、聊天、观战禁用操作、结束事件。
+`npm run test:ui`（游戏页，jsdom 驱动真实 `game.html`）：覆盖人机落子与 AI 应着、认输横幅、观战禁用操作等。
+`npm run test:gate`（多页面门禁，jsdom）：覆盖未登录跳登录页、登录成功跳主页、主页跳游戏页。
+`npm run test:e2e`（真实 Socket.IO）：覆盖建房/加入/走子/聊天/观战/悔棋/断线重连/认输/换先/快速匹配/超时/登录门禁。
 
 `npm run test:e2e`（联机，真实 Socket.IO）：建房/加入、走子同步与记谱、非法走法与轮次拦截、聊天双向、观战、悔棋、断线重连、认输、再来一局换先、快速匹配、步时超时判负。
 

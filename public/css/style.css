@@ -180,6 +180,19 @@ main { display: flex; gap: 22px; align-items: flex-start; }
   border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: var(--shadow);
 }
 
+/* ========== 独立页面布局 ========== */
+.home-main, .narrow-main {
+  max-width: 640px; margin: 0 auto;
+  background: rgba(255,255,255,.82); backdrop-filter: blur(10px);
+  border: 1px solid var(--line); border-radius: 18px; padding: 24px; box-shadow: var(--shadow);
+}
+.narrow-main { max-width: 520px; }
+.home-page .topbar, .profile-page .topbar, .leaderboard-page .topbar, .game-page .topbar {
+  max-width: 1120px; margin: 0 auto;
+}
+.game-page main { align-items: stretch; }
+.game-page .back-btn { align-self: center; margin-right: 2px; }
+
 /* ============================================================
    棋盘
    ============================================================ */

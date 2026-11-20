@@ -123,18 +123,12 @@
   };
 
   var screens = {
-    home: $('screen-home'), ai: $('screen-ai'), online: $('screen-online'), game: $('screen-game'),
-    profile: $('screen-profile'), leaderboard: $('screen-leaderboard')
+    ai: $('screen-ai'), online: $('screen-online'), game: $('screen-game')
   };
   function setScreen(name) {
     S.screen = name;
     Object.keys(screens).forEach(function (k) {
       if (screens[k]) screens[k].classList.toggle('hidden', k !== name);
-    });
-    $('btnHome').classList.toggle('hidden', name === 'home');
-    // 顶部导航高亮
-    document.querySelectorAll('.nav-btn[data-nav]').forEach(function (b) {
-      b.classList.toggle('on', b.getAttribute('data-nav') === name);
     });
     if (name === 'online') refreshRooms(true);
   }
@@ -687,8 +681,8 @@
 
   /* 人机对局落库（仅记录历史，不计分） */
   function persistAiGame(result) {
-    if (!window.XQAccount || !window.XQAccount.getToken) return;
-    var token = window.XQAccount.getToken();
+    if (!window.XQAuth || !window.XQAuth.getToken) return;
+    var token = window.XQAuth.getToken();
     if (!token) return; // 游客不记
     var winner = result.winner; // -1 和, 0 红胜, 1 黑胜
     var mySide = S.mySide;
@@ -826,7 +820,7 @@
 
   /* 取登录 token（供联机走子关联账号战绩） */
   function authToken() {
-    if (window.XQAccount && window.XQAccount.getToken) return window.XQAccount.getToken();
+    if (window.XQAuth && window.XQAuth.getToken) return window.XQAuth.getToken();
     return '';
   }
 
@@ -950,6 +944,7 @@
 
   function onRoom(info) {
     var newRoom = S.roomCode !== info.code || S.role !== info.role;
+    S.mode = 'online';  // 房间事件即联机上下文（含观战）
     S.roomCode = info.code;
     S.role = info.role;
     S.mySide = info.side;
@@ -1029,11 +1024,12 @@
     fetch('/api/stats', { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        $('homeStats').textContent = '服务器在线 ' + d.online + ' 人 · 对局中 ' + d.playing +
+        var hs = $('homeStats');
+        if (hs) hs.textContent = '服务器在线 ' + d.online + ' 人 · 对局中 ' + d.playing +
           ' 桌 · 等待中 ' + (d.waitingRooms ? d.waitingRooms.length : 0) + ' 桌';
         if (withList) renderRoomList(d.waitingRooms || []);
       })
-      .catch(function () { $('homeStats').textContent = '服务器状态读取失败'; });
+      .catch(function () { var hs = $('homeStats'); if (hs) hs.textContent = '服务器状态读取失败'; });
 
     clearTimeout(roomTimer);
     if (withList) roomTimer = setTimeout(function () { refreshRooms(true); }, 5000);
@@ -1152,53 +1148,31 @@
     clearTimeout(roomTimer);
     renderMoves();
     draw();
-    setScreen('home');
-    refreshRooms(false);
+    // 游戏页返回大厅 → 跳转主页
+    window.XQAuth.navigate('/');
   }
-
-  /* 供 account.js 调用：切屏（profile / leaderboard） */
-  function accountSetScreen(name) { setScreen(name); }
 
   /* ---------------- 界面事件 ---------------- */
   function loggedIn() {
-    return window.XQAccount && window.XQAccount.auth && window.XQAccount.auth.user;
+    return window.XQAuth && window.XQAuth.isLoggedIn();
   }
   function gateGuard() {
     if (loggedIn()) return true;
-    if (window.XQAccount && window.XQAccount.requireLogin) window.XQAccount.requireLogin();
+    if (window.XQAuth && window.XQAuth.guard) window.XQAuth.guard();
     return false;
   }
-  // 登录成功后自动加入邀请房间（若有 ?room=）
-  window.addEventListener('xq:login', function () {
-    if (S.pendingJoin) { goOnline(); flushPending(); }
-  });
-
-  $('goAi').addEventListener('click', function () {
-    if (!gateGuard()) return;
-    syncNick();
-    setScreen('ai');
-  });
-
-  $('goOnline').addEventListener('click', function () {
-    if (!gateGuard()) return;
-    syncNick();
-    goOnline();
-  });
-
   function syncNick() {
-    var u = loggedIn();
+    var u = window.XQAuth ? window.XQAuth.getUser() : null;
     S.name = u && u.nickname ? u.nickname : (LS.get('xq_name', '棋友') || '棋友');
     LS.set('xq_name', S.name);
   }
 
+  // 游戏页内的返回按钮：统一跳回主页（清理房间）
   document.querySelectorAll('[data-back]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      // 联机页返回需要清理房间/断开旧监听，走 goHome；其余直接回大厅
-      if (b.getAttribute('data-back') === 'online') goHome();
-      else setScreen('home');
-    });
+    b.addEventListener('click', goHome);
   });
-  $('btnHome').addEventListener('click', function () { goHome(); });
+  var btnHomeEl = $('btnHome');
+  if (btnHomeEl) btnHomeEl.addEventListener('click', function () { goHome(); });
 
   $('levelSeg').addEventListener('click', function (e) {
     var b = e.target.closest('button');
@@ -1299,7 +1273,7 @@
   });
 
   $('btnCopyLink').addEventListener('click', function () {
-    var url = location.origin + '/?room=' + encodeURIComponent(S.roomCode || $('roomCode').textContent);
+    var url = location.origin + '/game.html?mode=online&room=' + encodeURIComponent(S.roomCode || $('roomCode').textContent);
     copyText(url, '邀请链接已复制，发给好友即可对战');
   });
 
@@ -1435,19 +1409,32 @@
     document.removeEventListener('pointerdown', once);
   });
 
-  setScreen('home');
+  // 游戏页：按 ?mode=ai|online 初始化对应面板
   renderMoves();
   renderRecord();
   draw();
-  refreshRooms(false);
 
-  // 邀请链接：?room=ABCDE
+  // 门禁：未登录跳登录页（带 next 回跳）
+  if (!loggedIn()) {
+    if (window.XQAuth && window.XQAuth.guard) window.XQAuth.guard();
+    return;
+  }
+  syncNick();
+
+  var initMode = /[?&]mode=online/.test(location.search) ? 'online' : 'ai';
+  if (initMode === 'online') {
+    setScreen('online');
+    goOnline();
+  } else {
+    setScreen('ai');
+  }
+
+  // 邀请链接：?mode=online&room=ABCDE
   (function () {
     var m = /[?&]room=([A-Za-z0-9]+)/.exec(location.search);
     if (!m) return;
     var code = m[1].toUpperCase();
     $('joinCode').value = code;
-    // 门禁：未登录时只记录待加入房间，登录成功后由 xq:login 事件自动进入
     S.pendingJoin = code;
     if (loggedIn()) {
       goOnline();
@@ -1579,9 +1566,8 @@
     if (rp.timer) { clearInterval(rp.timer); rp.timer = 0; }
   }
 
-  /* 暴露给 account.js */
+  /* 复盘能力暴露给档案页复用 */
   window.XQApp = {
-    setScreen: accountSetScreen,
     showReplay: showReplay,
     stopReplay: stopReplay
   };

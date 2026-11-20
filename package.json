@@ -13,8 +13,9 @@
     "dev": "node server.js",
     "test": "node selftest.js",
     "test:ui": "node smokeui.js",
+    "test:gate": "node gatetest.js",
     "test:e2e": "node e2etest.js",
-    "test:all": "node selftest.js && node smokeui.js && node e2etest.js"
+    "test:all": "node selftest.js && node smokeui.js && node gatetest.js && node e2etest.js"
   },
   "dependencies": {
     "express": "^4.19.2",

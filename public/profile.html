@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#f6f3ec">
+<title>个人档案 · 中国象棋</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314110f'/%3E%3Ccircle cx='32' cy='32' r='25' fill='%23f7e9c8' stroke='%23b3272d' stroke-width='3'/%3E%3Ctext x='32' y='44' font-size='32' text-anchor='middle' fill='%23b3272d' font-family='serif'%3E帥%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="profile-page">
+
+<header class="topbar">
+  <div class="brand">
+    <button class="back-btn" id="btnBack" title="返回大厅">←</button>
+    <span class="logo">帥</span>
+    <div class="brand-text"><h1>个人档案</h1><p>战绩与段位</p></div>
+  </div>
+  <div class="top-actions">
+    <button id="userBadge" class="user-badge logged-out" title="个人档案"></button>
+  </div>
+</header>
+
+<main class="narrow-main">
+  <div class="profile-card">
+    <div class="prof-head">
+      <span class="prof-icon" id="profRankIcon">♟</span>
+      <div class="prof-title">
+        <b id="profName">棋友</b>
+        <i id="profRank">黄金</i>
+      </div>
+      <div class="prof-rating">
+        <b id="profRating">1200</b>
+        <i id="profPeak">历史最高 1200</i>
+      </div>
+    </div>
+    <div class="prof-stats">
+      <div class="ps"><b id="profWins">0</b><i>胜</i></div>
+      <div class="ps"><b id="profLosses">0</b><i>负</i></div>
+      <div class="ps"><b id="profDraws">0</b><i>和</i></div>
+      <div class="ps"><b id="profRate">0%</b><i>胜率</i></div>
+    </div>
+    <div class="prof-more">
+      <span>当前连<span id="profStreak">—</span></span>
+      <span>最佳连胜 <b id="profBest">0</b></span>
+      <span id="profNext">—</span>
+    </div>
+  </div>
+
+  <h3>对局历史</h3>
+  <div class="history" id="gameHistory"></div>
+
+  <button class="btn danger ghost block" id="btnLogout">退出登录</button>
+</main>
+
+<footer class="foot">
+  <span>中国象棋 · 开源项目</span>
+  <a href="/">返回大厅</a>
+</footer>
+
+<script src="/js/core.js"></script>
+<script src="/js/profile.js"></script>
+</body>
+</html>

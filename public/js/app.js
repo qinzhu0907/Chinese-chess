@@ -1192,7 +1192,11 @@
   }
 
   document.querySelectorAll('[data-back]').forEach(function (b) {
-    b.addEventListener('click', function () { setScreen('home'); });
+    b.addEventListener('click', function () {
+      // 联机页返回需要清理房间/断开旧监听，走 goHome；其余直接回大厅
+      if (b.getAttribute('data-back') === 'online') goHome();
+      else setScreen('home');
+    });
   });
   $('btnHome').addEventListener('click', function () { goHome(); });
 

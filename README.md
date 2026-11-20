@@ -1,13 +1,13 @@
-# 弈界 · 中国象棋（联机对战 & AI 对局）
+# 中国象棋 · 联机对战 & AI 对局
 
 [![CI](https://github.com/qinzhu0907/Chinese-chess/actions/workflows/ci.yml/badge.svg)](https://github.com/qinzhu0907/Chinese-chess/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-22%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](./Dockerfile)
 
-一个零构建、可直接部署到自己服务器的中国象棋网站。后端 Node.js + Express + Socket.IO，前端原生 Canvas（没有 npm run build 这一步）。**采用「新中式高端」视觉：深墨 / 朱红 / 鎏金 + 玻璃质感 + 微动效。**
+一个零构建、可直接部署到自己服务器的中国象棋网站。后端 Node.js + Express + Socket.IO，前端原生 Canvas（没有 npm run build 这一步）。
 
-- **登录门禁** —— 邮箱验证码登录（首次自动注册），未登录无法进入大厅或开局；服务端同步校验，防止绕过
+- **登录门禁** —— 邮箱验证码登录（首次自动注册），未登录先到登录页；服务端校验 `create/join/quick`（`REQUIRE_LOGIN=0` 可关，仅供测试）
 - **账号体系** —— ELO 段位（青铜→大师）、战绩统计、对局历史与逐步复盘、高手排行榜
 - **联机对战** —— 房间号约战 / 快速匹配 / 房间大厅，支持观战、聊天、悔棋、求和、换先再战
 - **断线重连** —— 网络抖动或误刷新后，凭 token 在 2 分钟内坐回原座位，对局不中断

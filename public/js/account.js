@@ -431,12 +431,6 @@
       document.querySelectorAll('.nav-btn').forEach(function (n) { n.classList.toggle('on', n === navProfile); });
       openProfile();
     });
-    document.querySelectorAll('[data-back]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        document.querySelectorAll('.nav-btn').forEach(function (n, i) { n.classList.toggle('on', i === 0); });
-        setScreen('home');
-      });
-    });
     var btnProfHome = $('btnProfHome');
     if (btnProfHome) btnProfHome.addEventListener('click', function () { openProfile(); });
 
